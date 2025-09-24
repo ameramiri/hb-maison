@@ -1,4 +1,0 @@
-.modal { position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:9999; display:none; }
-.modal-content { background:#fff; margin:5vh auto; max-width:1000px; border-radius:12px; }
-.modal-header { display:flex; justify-content:space-between; padding:10px 14px; border-bottom:1px solid #eee; }
-.modal-body { padding:12px 14px; max-height:70vh; overflow-y:auto; }
