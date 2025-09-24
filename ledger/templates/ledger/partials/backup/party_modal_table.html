@@ -1,0 +1,43 @@
+{% load format_filters %}
+
+<div class="modal-card" style="background:#fff; width:90%; max-width:720px; margin:5vh auto; border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,.15); overflow:hidden;">
+  <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-bottom:1px solid #eee;">
+    <div class="modal-title"
+         style="display:flex; align-items:center; gap:6px; white-space:nowrap;">
+      <span>تراکنش‌های</span>
+      <strong><span id="party-modal-title-name"></span></strong>
+    </div>
+
+    <button type="button" id="party-modal-close" class="icon-btn">✕</button>
+  </div>
+
+  <div style="padding:12px 16px;">
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+      <span>تعداد نمایش (آخر)</span>
+      <input type="number" id="party-modal-limit" min="1" max="200" style="width:80px; height:30px; padding:2px 6px;">
+    </div>
+
+    <div class="table-wrap table-scroll">
+      <table class="table-pro">
+        <thead>
+          <tr>
+            <th>تاریخ</th>
+            <th>عملیات</th>
+            <th>کالا</th>
+            <th>تعداد</th>
+            <th>مبلغ کل</th>
+            <th>دریافت/پرداخت</th>
+            <th>مانده</th>
+          </tr>
+        </thead>
+        <tbody id="party-modal-body">
+          <tr>
+            <td colspan="7" style="text-align:center; padding:20px;">
+              {{ party_label }} انتخاب نشده
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,86 @@
+/* -------------------
+   ساختار فرم
+-------------------- */
+form {
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  background-color: white;
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  display: inline-block;
+  text-align: right;
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-bottom: 16px;
+  gap: 8px;
+}
+
+label {
+  min-width: 75px;
+  text-align: left;
+  white-space: nowrap;
+  margin: 0;
+  padding: 0;
+}
+
+input, select, textarea {
+  padding: 6px 10px;
+  width: 250px;
+  height: 14px;
+  direction: rtl;
+  text-align: right;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+/* -------------------
+   تنظیمات Select2
+-------------------- */
+.select2-container {
+  width: 272px;
+  direction: rtl;
+  text-align: right;
+}
+
+.select2-container--default .select2-selection--single {
+  padding: 1px 2px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding-right: 5px;
+  width: 100%;
+  height: 30px;
+  direction: rtl;
+  text-align: right;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(0%);
+  width: 20px;
+  height: 20px;
+}
+
+.select2-container .select2-dropdown {
+  width: 272px;
+  direction: rtl;
+  text-align: right;
+}
+
+.select2-container .select2-search--dropdown .select2-search__field {
+  height: 28px;
+  padding: 4px 8px;
+  font-family: 'Vazir', sans-serif;
+}
+
+/* فقط برای دراپ‌داون group */
+#select2-id_group-results {
+  max-height: 300px !important;  /* پیش‌فرض حدود 200px هست */
+}

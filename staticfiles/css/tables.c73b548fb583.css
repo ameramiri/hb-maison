@@ -1,0 +1,132 @@
+/* -------------------
+   Pro Table
+-------------------- */
+.table-wrap {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 6px 24px rgba(16,24,40,.06);
+  padding: 12px;
+  overflow: hidden;
+  margin-top: 16px;
+  border: 1px solid #eef2f7;
+  text-allign: right;
+}
+
+.table-pro {
+  width: max-content;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 14px;
+  direction: rtl;
+  table-layout: fixed;
+  display: inline-table;
+}
+
+.table-pro thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  text-align: right;
+  background: linear-gradient(180deg,#f9fafb 0%,#f2f4f7 100%);
+  color: #111827;
+  font-weight: 600;
+  padding: 12px 14px;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+
+.table-pro tbody tr { transition: background .15s ease, box-shadow .15s ease; }
+.table-pro tbody tr:nth-child(even) { background: #fbfdff; }
+.table-pro tbody tr:hover { background: #f5f9ff; }
+
+.table-pro td {
+  padding: 8px 6px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #111827;
+  vertical-align: middle;
+}
+
+/* گرد کردن گوشه‌های جدول */
+.table-pro thead th:first-child { border-top-right-radius: 12px; }
+.table-pro thead th:last-child  { border-top-left-radius: 12px; }
+.table-pro tbody tr:last-child td:first-child { border-bottom-right-radius: 12px; }
+.table-pro tbody tr:last-child td:last-child  { border-bottom-left-radius: 12px; }
+
+/* خوانایی بهتر اعداد */
+.table-pro td.num, .table-pro th.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  direction: rtl;
+  white-space: nowrap;
+}
+
+/* ستون‌های متنی طولانی */
+.table-pro .text-clip {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* -------------------
+   جدول تراکنش‌ها
+-------------------- */
+.transaction-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+  min-width: 800px;
+  background-color: white;
+  box-shadow: 0 0 5px rgba(0,0,0,0.05);
+  margin-top: 20px;
+}
+
+.transaction-table th,
+.transaction-table td {
+  padding: 12px 16px;
+  border: 1px solid #e0e0e0;
+  text-align: right;
+}
+
+.transaction-table th {
+  background-color: #f0f2f5;
+  font-weight: 600;
+  color: #333;
+}
+
+.transaction-table tbody tr:nth-child(even) { background-color: #fafafa; }
+.transaction-table tbody tr:hover { background-color: #e6f7ff; }
+
+/* -------------------
+   جدول فشرده زیر فرم
+-------------------- */
+.table-compact {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  font-size: 0.9rem;
+}
+
+.table-compact th,
+.table-compact td {
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  text-align: right;
+}
+
+.table-compact th {
+  background-color: #3333ff;
+  color: #f1f1f1;
+  font-weight: bold;
+}
+
+.table-compact tbody tr:nth-child(even) { background-color: #fafafa; }
+.table-compact tbody tr:hover { background-color: #e6f7ff; }
+
+/* -------------------
+   عمومی جدول‌ها
+-------------------- */
+.text-clip { max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.qty-center { text-align:center; }
+.num { text-align:left; direction:ltr; }
+.neg { color:#b00020 !important; font-weight:600; }

@@ -1,0 +1,43 @@
+{% load format_filters %}
+{% if transactions %}
+  {% for tx in transactions %}
+    <tr>
+      <td>{{ tx.date_shamsi|to_persian_digits }}</td>
+      <td><span class="badge-op {{ tx.op_badge_class }}">{{ tx.op_label }}</span></td>
+
+
+      <td style="overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">
+        {% if tx.party %}
+          <a href="#" class="party-link" data-party-id="{{ tx.party.id }}" data-party-name="{{ tx.party.name }}">
+            {{ tx.party.name }}
+          </a>
+        {% else %}
+          —
+        {% endif %}
+      </td>
+
+      {% if tx.op_type == OP_BUY or tx.op_type == OP_SELL or tx.op_type == OP_USE %}
+        <td style="overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">
+          {% if tx.item %}
+              <a href="#" class="item-link" data-item-id="{{ tx.item.id }}" data-item-name="{{ tx.item.name }}">
+                {{ tx.item.name }}
+              </a>
+          {% else %}
+            —
+          {% endif %}
+        </td>
+        <td class="qty-center">{{ tx.qty|fa_thousand }}</td>
+        <td class="num">{{ tx.unit_price|fa_thousand }}</td>
+        <td class="num">{{ tx.total_price|fa_thousand }}</td>
+      {% else %}
+        <td></td>
+        <td></td>
+        <td></td>
+        <td class="num">{{ tx.total_price|fa_thousand }}</td>
+      {% endif %}
+      <td class="num">{{ tx.description }}</td>
+    </tr>
+  {% endfor %}
+{% else %}
+  <tr><td colspan="8" class="text-center">هیچ تراکنشی وجود ندارد.</td></tr>
+{% endif %}

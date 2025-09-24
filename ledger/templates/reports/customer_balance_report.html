@@ -1,0 +1,151 @@
+{# templates/reports/customer_balance_report.html #}
+{% extends 'base.html' %}
+{% load format_filters %}
+
+{% block title %}گزارش مانده حساب مشتریان{% endblock %}
+
+{% block content %}
+<h2>گزارش مانده حساب مشتریان</h2>
+
+<form method="get" class="filter-form"
+      style="margin:1rem 0; display:flex; flex-wrap:wrap; gap:.75rem; align-items:center;">
+  <input type="text" name="q" value="{{ q }}"
+         placeholder="جستجو در نام مشتری…"
+         style="padding:.4rem .6rem; width:200px;"
+         onkeydown="if(event.key==='Enter'){ this.form.submit(); }">
+  <button type="submit"
+          style="padding:.45rem 1rem; white-space:nowrap;">
+    اعمال فیلتر
+  </button>
+
+  <label style="display:inline-flex; align-items:center; gap:.35rem; flex-basis:100%; margin-top:.25rem; cursor:pointer;">
+    <input id="exclude_zero" type="checkbox" name="exclude_zero"
+           {% if exclude_zero %}checked{% endif %}
+           style="margin:0; width:16px; height:16px; cursor:pointer;">
+    حذف مشتریان با مانده صفر
+  </label>
+</form>
+
+<div class="table-wrap table-scroll">
+  <table id="main-table" class="table-pro">
+    <colgroup>
+      <col style="width: 140px;">
+      <col style="width: 120px;">
+      <col style="width: 120px;">
+      <col style="width: 120px;">
+    </colgroup>
+    <thead>
+      <tr>
+        <th>نام مشتری</th>
+        <th>مانده</th>
+        <th>کل خرید</th>
+        <th>جمع پرداختی</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td style="overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">
+          <a href="#" class="party-link" data-party-id="{{ r.party_id }}" data-party-name="{{ r.party_name }}">
+            {{ r.party_name }}
+          </a>
+        </td>
+        <td class="num">{{ r.balance|fa_thousand }}</td>
+        <td class="num">{{ r.total_purchase|fa_thousand }}</td>
+        <td class="num">{{ r.total_payment|fa_thousand }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4" style="padding:.75rem; text-align:center;">موردی یافت نشد</td></tr>
+      {% endfor %}
+    </tbody>
+
+  </table>
+</div>
+
+<!-- نوار جمع ساده (فقط جمع مانده) -->
+<div class="totals-bar-single" style="padding: 34px;">
+  <span class="label">جمع مانده:</span>
+  <span class="value" dir="ltr">{{ totals.sum_balance|fa_thousand }}</span>
+</div>
+
+<div id="party-modal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div style="flex:1; display:flex; flex-direction:column; align-items:flex-start; padding-right:12px;">
+        <h3 id="party-modal-title">تراکنش‌های طرف حساب</h3>
+        <!-- فیلتر -->
+        <label class="filter-inline">
+          <input type="checkbox" id="filter-from-last-settlement" style="cursor:pointer;">
+          <span>فقط از آخرین تسویه</span>
+        </label>
+      </div>
+      <button type="button" id="party-modal-close">×</button>
+    </div>
+
+    <div class="modal-body">
+      <div id="party-modal-scroll" style="max-height:400px; overflow-y:auto; border:1px solid #eee;">
+        <table class="table-pro">
+          <colgroup>
+            <col style="width:80px">
+            <col style="width:65px">
+            <col style="width:130px">
+            <col style="width:40px">
+            <col style="width:100px">
+            <col style="width:100px">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>تاریخ</th>
+              <th>عملیات</th>
+              <th>کالا/تسویه حساب</th>
+              <th>تعداد</th>
+              <th>مبلغ</th>
+              <th>مانده حساب</th>
+            </tr>
+          </thead>
+          <tbody id="party-modal-rows">
+            <tr><td colspan="7" class="text-center">در حال بارگذاری...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.addEventListener('load', function() {
+    const qInput = document.querySelector('input[name="q"]');
+    if (qInput) qInput.focus();
+  });
+
+  document.getElementById('exclude_zero').addEventListener('change', function() {
+    document.querySelector('.filter-form').submit();
+  });
+
+  (function () {
+    const wrap = document.querySelector('.table-wrap');
+    if (!wrap) return;
+
+    function snapRight() {
+      if (window.matchMedia('(max-width:768px)').matches) {
+        wrap.scrollLeft = wrap.scrollWidth; // بره سمت راست
+      }
+    }
+
+    window.addEventListener('load', () => requestAnimationFrame(snapRight));
+    window.addEventListener('resize', snapRight);
+  })();
+
+  document.body.addEventListener('click', function(e){
+    const partyLink = e.target.closest('.party-link');
+    if (partyLink) {
+      e.preventDefault();
+      window.openPartyModalById?.(partyLink.dataset.partyId, partyLink.dataset.partyName);
+    }
+  });
+
+</script>
+{% endblock %}

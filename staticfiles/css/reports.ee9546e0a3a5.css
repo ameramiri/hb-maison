@@ -1,0 +1,58 @@
+table.sales-report {
+  border-collapse: collapse;
+  margin: 20px 0;
+  direction: rtl;
+  text-align: center;
+  background: #f0f8ff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 0 8px rgba(0,0,0,0.1);
+}
+
+table.sales-report thead { background: #dbeafe; color: black; }
+
+/* هدر جدول */
+table.sales-report thead th {
+  padding: 12px 16px;   /* هدر کمی بزرگ‌تر */
+  line-height: 1.5;
+  min-height: 48px;
+  border-bottom: 1px solid #ddd;
+}
+
+/* بدنه جدول */
+table.sales-report tbody td {
+  padding: 10px 14px;   /* ردیف‌های بدنه کمی جمع‌وجورتر */
+  line-height: 1.4;
+  min-height: 42px;
+  border-bottom: 1px solid #ddd;
+}
+
+table.sales-report tbody tr:nth-child(odd)  { background: #f0f8ff; }
+table.sales-report tbody tr:nth-child(even) { background: #dbeafe; }
+table.sales-report tbody tr:hover { background: #bfdbfe; }
+
+table.sales-report td.profit-positive { color: green; font-weight: bold; }
+table.sales-report td.profit-negative { color: red; font-weight: bold; }
+
+/* ======================
+   اسکرول افقی برای جداول
+====================== */
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;              /* اسکرول افقی */
+  -webkit-overflow-scrolling: touch; /* اسکرول نرم در iOS */
+}
+
+.table-scroll table {
+  min-width: 720px;   /* جدول حداقل این عرض رو داشته باشه */
+  border-collapse: collapse;
+}
+
+/* در موبایل جدول کمی جمع‌وجورتر بشه */
+@media (max-width: 768px) {
+  .table-scroll table.sales-report th,
+  .table-scroll table.sales-report td {
+    padding: 8px 10px;  /* پدینگ کمتر برای موبایل */
+    font-size: 14px;
+  }
+}

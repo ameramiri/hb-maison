@@ -1,0 +1,42 @@
+{% load format_filters %}
+
+{% if txs %}
+  {% for t in txs %}
+    <tr>
+      <!-- تاریخ -->
+      <td>{{ t.date_shamsi|default_if_none:"-"|to_persian_digits }}</td>
+
+      <!-- نوع عملیات با badge -->
+      <td><span class="badge-op {{ t.op_badge_class }}">{{ t.op_label }}</span></td>
+
+      <!-- نام کالا -->
+      <td class="text-clip">{{ t.item.name|default:"-" }}</td>
+
+      <!-- تعداد/قیمت -->
+      {% if t.is_qty_based %}
+        <td class="qty-center">{{ t.qty|default_if_none:0|fa_thousand }}</td>
+        <td class="num">{{ t.unit_price|default_if_none:0|fa_thousand }}</td>
+        <td class="num">{{ t.total_price|default_if_none:0|fa_thousand }}</td>
+      {% else %}
+        <td class="qty-center">-</td>
+        <td class="qty-center">-</td>
+        <td class="num">{{ t.total_price|default_if_none:0|fa_thousand }}</td>
+      {% endif %}
+
+      <!-- طرف حساب -->
+      <td class="text-clip">{{ t.party.name|default:"-" }}</td>
+
+      <!-- مانده حساب -->
+      {% with rb=t.running_balance|default_if_none:0 %}
+        <td class="{% if rb < 0 %}neg{% endif %}">{{ rb|fa_thousand }}</td>
+      {% endwith %}
+
+      <!-- توضیحات -->
+      <td class="text-clip">{{ t.note|default:"-" }}</td>
+    </tr>
+  {% endfor %}
+{% else %}
+  <tr>
+    <td colspan="9" class="text-center">هیچ تراکنشی یافت نشد.</td>
+  </tr>
+{% endif %}

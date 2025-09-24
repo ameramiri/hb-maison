@@ -1,0 +1,26 @@
+table.report {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+  font-family: Vazir, sans-serif;
+  font-size: 15px;
+  direction: rtl;
+  text-align: center;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 0 8px rgba(0,0,0,0.1);
+}
+
+table.report thead { background: #4CAF50; color: white; }
+
+table.report th, table.report td {
+  padding: 12px;
+  border-bottom: 1px solid #ddd;
+}
+
+table.report tbody tr:nth-child(even) { background: #f9f9f9; }
+table.report tbody tr:hover { background: #f1f1f1; }
+
+table.report td.profit-positive { color: green; font-weight: bold; }
+table.report td.profit-negative { color: red; font-weight: bold; }

@@ -1,0 +1,14 @@
+.navbar { display:flex; justify-content:space-between; padding:8px 16px; border-bottom:1px solid #ddd; }
+.navbar-brand { font-weight:bold; font-size:1.2rem; }
+.navbar-menu { display:flex; gap:16px; }
+.navbar-menu a { text-decoration:none; color:#333; padding:6px 12px; border-radius:6px; }
+.navbar-menu a:hover { background:#eee; }
+
+.hamburger { display:none; flex-direction:column; cursor:pointer; gap:4px; }
+.hamburger div { width:24px; height:2px; background:#333; }
+
+@media (max-width:768px) {
+  .hamburger { display:flex; }
+  .navbar-menu { display:none; flex-direction:column; width:100%; }
+  .navbar-menu.active { display:flex; }
+}

@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}مدیریت کالاها{% endblock %}
+
+{% block content %}
+  <h2>مدیریت کالاها</h2>
+
+  <button type="button" id="btn-add-item" class="submit-btn">➕ ایجاد کالا</button>
+
+  <!-- لیست کالاها -->
+  <div id="items-table-wrap" style="margin-top:16px;">
+    {% include "ledger/partials/items_table.html" with items=items %}
+  </div>
+
+  <!-- مودال ثبت کالا -->
+  <div id="item-create-modal" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:600px;">
+      <div class="modal-header">
+        <h3 id="item-create-modal-title">کالای جدید</h3>
+        <button type="button" id="item-create-modal-close">×</button>
+      </div>
+      <div class="modal-body" id="item-create-modal-body">
+        <!-- فرم با Ajax لود می‌شود -->
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const btnAdd      = document.getElementById('btn-add-item');
+  const modal       = document.getElementById('item-create-modal');
+  const modalBody   = document.getElementById('item-create-modal-body');
+  const modalClose  = document.getElementById('item-create-modal-close');
+  const modalTitle  = document.getElementById('item-create-modal-title');
+  const tableWrap   = document.getElementById('items-table-wrap');
+
+  modalTitle.style.paddingRight = "12px";
+
+  // باز کردن مودال
+  btnAdd.addEventListener('click', ()=>{
+    fetch("{% url 'item_create' %}")
+      .then(r=>r.text())
+      .then(html=>{
+        modalBody.innerHTML = html;
+        modal.style.display = 'block';
+
+        const sellPrice   = setupNumericField('sell_price', 0);
+        const commAmount  = setupNumericField('commission_amount', 0);
+        const commPercent = setupNumericField('commission_percent', 2);
+        const groupSelect = modalBody.querySelector('#group');
+        if (groupSelect && window.jQuery) {
+          $(groupSelect).select2({
+            dir:'rtl',
+            placeholder: 'انتخاب گروه کالا',
+            sorter: function(data) {
+              return data.sort((a, b) => a.text.localeCompare(b.text, 'fa', { sensitivity: 'base' }));
+            }
+          });
+        }
+      });
+  });
+
+  if (window.jQuery) {
+    $(document).on('select2:open', () => {
+      document.querySelector('.select2-container--open .select2-search__field')?.focus();
+    });
+  }
+
+  // بستن مودال
+  modalClose.addEventListener('click', ()=> modal.style.display='none');
+  document.addEventListener('keydown', (e)=>{
+    if(e.key === 'Escape'){ modal.style.display='none' }
+  });
+
+  // بستن با کلیک روی پس‌زمینه
+  modal.addEventListener('click', (e)=>{
+    if(e.target === modal){ modal.style.display='none' }
+  });
+
+  // هندل کردن submit فرم
+  modalBody.addEventListener('submit', function(e){
+    if(e.target.matches('#item-create-form')){
+      e.preventDefault();
+      const formData = new FormData(e.target);
+
+      fetch(e.target.action, {
+        method:'POST',
+        body: formData,
+        headers:{ 'X-Requested-With':'XMLHttpRequest' }
+      })
+      .then(r=>r.json())
+      .then(data=>{
+        if(data.success){
+          modal.style.display = 'none';
+          tableWrap.innerHTML = data.table_html;
+        } else {
+          modalBody.innerHTML = data.form_html;
+        }
+      });
+    }
+  });
+});
+</script>
+{% endblock %}

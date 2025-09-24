@@ -1,0 +1,49 @@
+{% load format_filters %}
+
+{% if txs %}
+  {% for t in txs %}
+    <tr>
+      <td>{{ t.date_shamsi|default_if_none:"-"|to_persian_digits }}</td>
+      <td><span class="badge-op {{ t.op_badge_class }}">{{ t.op_label }}</span></td>
+
+      {# ستون کالا/نحوه تسویه #}
+      {% if t.op_type == OP_SELL or t.op_type == OP_USE or t.op_type == OP_BUY %}
+        <td class="text-clip">
+          <a href="#"
+             class="item-link"
+             data-item-id="{{ t.item.id }}"
+             data-item-name="{{ t.item.name }}"
+             style="color: inherit; text-decoration: none; display: block;">
+            {{ t.item.name }}
+          </a>
+        </td>
+      {% else %}
+        <td class="text-clip settlement-cell {% if t.op_type == OP_RCV %}rcv{% elif t.op_type == OP_PAY %}pay{% endif %}">
+          {{ t.get_payment_method_display|default:"" }}
+        </td>
+      {% endif %}
+
+      {# ستون تعداد #}
+      {% if t.is_qty_based %}
+        <td>{{ t.qty|default_if_none:0|fa_thousand }}</td>
+      {% else %}
+        <td></td>
+      {% endif %}
+
+      {% if t.op_type == OP_SELL or t.op_type == OP_USE or t.op_type == OP_PAY %}
+            <td> {{ t.total_price|default_if_none:0|fa_thousand }} </td>
+      {% elif t.op_type == OP_BUY or t.op_type == OP_RCV %}
+        <td>({{ t.total_price|default_if_none:0|fa_thousand }})</td>
+      {% endif %}
+
+      {# ستون مانده حساب #}
+      {% if t.running_balance < 0 %}
+        <td class="neg"><strong>({{ t.running_balance|abs_val|fa_thousand }})</strong></td>
+      {% else %}
+        <td><strong>{{ t.running_balance|fa_thousand }}</strong></td>
+      {% endif %}
+    </tr>
+  {% endfor %}
+{% else %}
+  <tr><td colspan="6" class="text-center">هیچ تراکنشی یافت نشد.</td></tr>
+{% endif %}

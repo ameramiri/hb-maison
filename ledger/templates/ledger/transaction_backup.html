@@ -1,0 +1,741 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load format_filters %}
+
+{% block title %}ثبت {{ op_type }}{% endblock %}
+
+{% block content %}
+  <h2>ثبت {{ op_type }}</h2>
+
+  {% if messages %}
+    {% for message in messages %}
+      <p class="success">{{ message }}</p>
+    {% endfor %}
+  {% endif %}
+
+  <style>
+    .party-inline{ display:flex; align-items:center; gap:8px; }
+    .icon-btn{ border:1px solid #d0d5dd; background:#f9fafb; border-radius:8px; padding:6px 8px; cursor:pointer; }
+    .icon-btn:hover{ background:#eef2f7; }
+
+    .disabled-btn {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* جدول «آخرین تراکنش‌ها» پایین فرم */
+    .table-pro.tx-last { table-layout: fixed; width: 100%; border-collapse: separate; }
+    .table-pro.tx-last th, .table-pro.tx-last td { padding: 10px 12px; vertical-align: middle; }
+
+    /* ——— هم‌راستاسازی تاریخ: هدر راست‌چین، داده‌ها وسط ——— */
+    .table-pro.tx-last th.c-date { text-align: right; }   /* لیبل تاریخ راست */
+    .table-pro.tx-last td.c-date { text-align: right; }  /* مقادیر تاریخ راست */
+
+    /* اگر padding های عمومی جای دیگری متفاوت باشد، این‌ها اولویت می‌گیرند */
+    .table-pro.tx-last th.c-qty,  .table-pro.tx-last td.c-qty  { text-align: center; }
+
+    /* ستون کالا */
+    .table-pro.tx-last .c-item {
+      min-width: 110px;   /* الان مثلاً روی 140 یا 160 بذاریم */
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+
+    /* تیتر ستون کالا */
+    .table-pro.tx-last th.c-item {
+      white-space: nowrap;
+    }
+
+
+    /* ——— جلوگیری از روی‌هم‌افتادن متن‌ها ——— */
+    .table-pro.tx-last th,
+    .table-pro.tx-last td {
+      line-height: 1.6;     /* ارتفاع خط کافی */
+    }
+
+    /* متن‌های طویل با سه‌نقطه */
+    .table-pro.tx-last .text-clip {
+      max-width: 100%;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    /* ——— بهینه‌سازی واکنش‌گرا برای موبایل ——— */
+    @media (max-width: 640px) {
+      /* اجازه بده مرورگر خودش عرض بهینه بدهد */
+      .table-pro.tx-last { table-layout: auto; }
+
+      /* کمی padding کمتر تا جا باز شود */
+      .table-pro.tx-last th,
+      .table-pro.tx-last td { padding: 6px 8px; line-height: 1.6; }
+
+      /* ستون‌های فشرده‌تر */
+      .table-pro.tx-last .c-date  { width: 86px; }
+      .table-pro.tx-last .c-type  { width: 74px; text-align: center; }
+      .table-pro.tx-last .c-qty   { width: 64px; text-align: center; }
+      .table-pro.tx-last .c-unit  { width: 96px; text-align: center; }
+      .table-pro.tx-last .c-total { width: 110px; text-align: center; }
+
+      /* ستون کالا فضای حداقلی داشته باشد و متنش مرتب نمایش داده شود */
+      .table-pro.tx-last .c-item  { min-width: 150px; }
+
+      /* گزینه ۱: بریده با سه‌نقطه (ظاهر مرتب‌تر) */
+      .table-pro.tx-last th.c-item,
+      .table-pro.tx-last td.c-item {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* اگر می‌خواهی تیتر/مقدار «کالا» دوخطی بشود (به‌جای سه‌نقطه)،
+         سه خط بالا را کامنت کن و این یکی را فعال کن: */
+      /* .table-pro.tx-last th.c-item,
+         .table-pro.tx-last td.c-item { white-space: normal; word-break: break-word; } */
+
+      /* بج برای «خرید/فروش» کوچک‌تر که جا نگیرد */
+      .table-pro.tx-last .badge-op { padding: 2px 8px; font-size: 12px; }
+    }
+  </style>
+
+  <form id="main-form" method="post" action="">
+    {% csrf_token %}
+
+    <div class="form-row">
+      {{ form.date_shamsi.label_tag }}
+      {{ form.date_shamsi }}
+    </div>
+
+    <div class="form-row">
+      {{ form.party.label_tag }}
+      <div class="party-inline">
+        <select id="party" name="party" class="select2" required>
+          <option value="">انتخاب کنید</option>
+          {% for party in parties %}
+            <option value="{{ party.id }}">{{ party.name }}</option>
+          {% endfor %}
+        </select>
+        {% if page_source == 'sell' %}
+          <button type="button" id="btn-party-modal" class="icon-btn" disabled title="تراکنش های این مشتری">🔎</button>
+        {% elif page_source == 'buy' %}
+          <button type="button" id="btn-party-modal" class="icon-btn" disabled title="تراکنش های این فروشنده">🔎</button>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="form-row">
+      {{ form.item.label_tag }}
+      <div class="party-inline">
+        <select id="item" name="item" class="select2" required>
+          <option value="">انتخاب کنید</option>
+          {% for item in items %}
+            <option value="{{ item.id }}">{{ item.name }}</option>
+          {% endfor %}
+        </select>
+        <button type="button" id="btn-item-modal" class="icon-btn" disabled title="تراکنش های این کالا">🔎</button>
+      </div>
+    </div>
+
+    <div class="form-row">
+      {{ form.qty.label_tag }}
+      <input type="text" id="qty" name="qty" class="unit-price-short-field" placeholder="تعداد"
+        {% if op_type == 'فروش' %}value="۱"{% endif %}>
+        <span style="margin-right: 5px;">موجودی:</span>
+        <span id="stock-display" style="margin-right: 4px; color:#555;">—</span>
+        <span id="stock-unit"    style="margin-right: 2px; color:#555;"></span>
+    </div>
+
+    <div class="form-row">
+      {{ form.unit_price.label_tag }}
+      <input type="text" id="unit_price" name="unit_price" class="unit-price-short-field"  placeholder="قیمت واحد">
+
+      <span style="margin-right: 10px; color: #007BFF;" id="sell-price-display">—</span>
+      <span style="margin-right: 5px;">تومان</span>
+    </div>
+
+    <div class="form-row">
+      {{ form.total_price.label_tag }}
+      <input type="text" id="total_price" name="total_price" class="digit-input" placeholder="قیمت کل"
+           {% if readonly_total_price %}readonly{% endif %}>
+    </div>
+
+    <button type="submit" class="submit-btn">ثبت {{ op_type }}</button>
+
+    <h3 style="margin-top: 24px; display:flex; align-items:center; gap:12px;">
+      آخرین تراکنش‌ها
+      <span style="font-weight:normal; color:#6b7280;">(تعداد)</span>
+      <input type="number" id="recent-limit" min="1" max="200" value="20" style="width:90px; height:32px; padding:2px 8px;">
+    </h3>
+
+    <div class="table-wrap table-scroll">
+      <table class="table-pro tx-last">
+        <colgroup>
+          <col class="c-date">
+          <col class="c-type">
+          <col class="c-party">
+          <col class="c-item">
+          <col class="c-qty">     <!-- تعداد -->
+          <col class="c-unit">
+          <col class="c-total">
+        </colgroup>
+        <thead>
+          <tr>
+            <th class="c-date">تاریخ</th>
+            <th class="c-type">عملیات</th>
+            <th class="c-party">طرف معامله</th>
+            <th class="c-item">کالا</th>
+            <th class="c-qty">تعداد</th>
+            <th class="c-unit">قیمت واحد</th>
+            <th class="c-total">جمع کل</th>
+          </tr>
+        </thead>
+
+
+        <tbody id="recent-tx-body">
+          {% for tx in recent_transactions %}
+          <tr>
+            <td class="c-date text-clip">{{ tx.date_shamsi|to_persian_digits }}</td>
+            <td class="c-type">
+              <span class="badge-op {{ tx.op_badge_class }}">{{ tx.op_label }}</span>
+            </td>
+            <td class="c-party text-clip">{{ tx.party.name }}</td>
+            <td class="c-item  text-clip">{{ tx.item.name }}</td>
+            <td class="c-qty  ">{{ tx.qty|fa_thousand }}</td>
+            <td class="c-unit num">{{ tx.unit_price|fa_thousand }}</td>
+            <td class="c-total num">{{ tx.total_price|fa_thousand }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7"><div class="empty-state">هیچ تراکنشی وجود ندارد.</div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div id="party-modal"
+       class="modal"
+       style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:9999;"
+       tabindex="-1"
+       onkeydown="
+         if(event.key==='Enter'){ event.preventDefault(); event.stopPropagation(); }
+         if(event.key==='Escape'){ this.style.display='none'; }
+       ">
+
+      {% if page_source == 'sell' %}
+        {% with party_label="مشتری" %}
+          {% include "ledger/partials/party_modal_table.html" %}
+        {% endwith %}
+      {% elif page_source == 'buy' %}
+        {% with party_label="فروشنده" %}
+          {% include "ledger/partials/party_modal_table.html" %}
+        {% endwith %}
+      {% endif %}
+    </div>
+
+    <div id="item-modal"
+         class="modal"
+         style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:9999;"
+         tabindex="-1"
+         onkeydown="
+           if(event.key==='Enter'){ event.preventDefault(); event.stopPropagation(); }
+           if(event.key==='Escape'){ this.style.display='none'; }
+         ">
+
+      {% include "ledger/partials/item_modal_table.html" %}
+    </div>
+
+
+
+
+    <!-- Modal -->
+    <div id="tx-modal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="tx-modal-title">آخرین تراکنش‌ها</h3>
+          <button type="button" id="tx-modal-close">×</button>
+        </div>
+        <div class="modal-body">
+          <table class="table-pro tx-last">
+            <thead>
+              <tr>
+                <th>تاریخ</th>
+                <th>عملیات</th>
+                <th>کالا</th>
+                <th>تعداد</th>
+                <th>فی</th>
+                <th>مبلغ کل</th>
+                <th>طرف حساب</th>
+                <th>مانده</th>
+                <th>توضیح</th>
+              </tr>
+            </thead>
+            <tbody id="tx-modal-rows">
+              <tr><td colspan="9" class="text-center">در حال بارگذاری...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+
+
+
+
+
+  </form>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+
+
+
+<script>
+(function(){
+  const modal = document.getElementById('tx-modal');
+  const modalClose = document.getElementById('tx-modal-close');
+  const modalRows = document.getElementById('tx-modal-rows');
+  const modalTitle = document.getElementById('tx-modal-title');
+
+  function openModal(){ modal.style.display = 'block'; }
+  function closeModal(){ modal.style.display = 'none'; }
+  modalClose.addEventListener('click', closeModal);
+  modal.addEventListener('click', (e)=>{ if(e.target===modal) closeModal(); });
+
+  function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+  async function loadIntoModal(url, title){
+    modalTitle.textContent = title || 'آخرین تراکنش‌ها';
+    modalRows.innerHTML = `<tr><td colspan="9" class="text-center">در حال بارگذاری...</td></tr>`;
+    openModal();
+    try{
+      const res = await fetch(url, {headers:{'X-Requested-With':'XMLHttpRequest'}});
+      const text = await res.text();
+      if(!res.ok){
+        modalRows.innerHTML = `<tr><td colspan="9"><pre style="white-space:pre-wrap">${escapeHtml(text).slice(0,4000)}</pre></td></tr>`;
+      }else{
+        modalRows.innerHTML = text;
+      }
+    }catch(err){
+      modalRows.innerHTML = `<tr><td colspan="9">خطای شبکه.</td></tr>`;
+    }
+  }
+
+  // دکمه‌های مودال (فرض: آیدی‌ها این‌ها هستند؛ اگر متفاوت‌اند، اصلاح کن)
+  const btnParty = document.getElementById('btn-party-modal');
+  const btnItem  = document.getElementById('btn-item-modal');
+  const partySelect = document.getElementById('id_party');
+  const itemSelect  = document.getElementById('id_item');
+
+  if(btnParty){
+    btnParty.addEventListener('click', ()=>{
+      const pid = partySelect ? partySelect.value : '';
+      if(!pid){ alert('لطفاً طرف حساب را انتخاب کنید.'); return; }
+      loadIntoModal(`/ajax/party-txs/?party_id=${encodeURIComponent(pid)}&limit=20`, 'تراکنش‌های این طرف حساب');
+    });
+  }
+
+  if(btnItem){
+    btnItem.addEventListener('click', ()=>{
+      const iid = itemSelect ? itemSelect.value : '';
+      if(!iid){ alert('لطفاً کالا را انتخاب کنید.'); return; }
+      loadIntoModal(`/ajax/item-txs/?item_id=${encodeURIComponent(iid)}&limit=20`, 'تراکنش‌های این کالا');
+    });
+  }
+})();
+</script>
+
+
+
+
+
+
+
+
+
+
+window.PAGE_SOURCE = "{{ page_source }}";
+
+document.addEventListener('DOMContentLoaded', function () {
+  // اگر jQuery/Select2 در base.html لود شده، اینجا فعالش کن
+  if (window.jQuery) {
+    $('#item').select2({  width:'215px', dir:'rtl', placeholder:'انتخاب کالا' });
+    $('#party').select2({ width:'215px', dir:'rtl', placeholder:'انتخاب طرف حساب' });
+  }
+
+  const partySelectEl = document.getElementById('party');
+  const partyBtn      = document.getElementById('btn-party-modal');
+
+  const itemSelectEl = document.getElementById('item');
+  const itemBtn      = document.getElementById('btn-item-modal');
+
+  // ست کردن مقدار limit در صورت تغییر طرف حساب یا کالا
+  const DEFAULT_LIMIT = 50;
+
+  function ensureLimit(el){
+    if (el && (el.value === '' || isNaN(parseInt(el.value, 10)))) {
+      el.value = DEFAULT_LIMIT;
+    }
+  }
+
+  const resetPartyLimit = () => {
+    const el = document.getElementById('party-modal-limit');
+    if (el) el.value = DEFAULT_LIMIT;
+  };
+  if (partySelectEl) {
+    partySelectEl.addEventListener('change', resetPartyLimit);
+    if (window.jQuery) {
+      $('#party').on('select2:select select2:clear', resetPartyLimit);
+    }
+  }
+
+  const resetItemLimit = () => {
+    const el = document.getElementById('item-modal-limit');
+    if (el) el.value = DEFAULT_LIMIT;
+  };
+  if (itemSelectEl) {
+    itemSelectEl.addEventListener('change', resetItemLimit);
+    if (window.jQuery) {
+      $('#item').on('select2:select select2:clear', resetItemLimit);
+    }
+  }
+
+  // فعال و غیرفعال کردن button جستجوی طرف حساب
+  function updatePartyBtn() {
+    if (!partyBtn) return;
+    const hasVal = !!(partySelectEl && partySelectEl.value);
+    partyBtn.disabled = !hasVal;
+    partyBtn.classList.toggle('disabled-btn', !hasVal);
+  }
+
+  if (partySelectEl) {
+    // تغییرِ نِیتیو
+    partySelectEl.addEventListener('change', updatePartyBtn);
+    // تغییرِ Select2
+    if (window.jQuery && $('#party').data('select2')) {
+      $('#party').on('select2:select select2:clear', updatePartyBtn);
+    }
+  }
+  // وضعیت اولیه
+  updatePartyBtn();
+
+  // فعال و غیرفعال کردن button جستجوی کالا
+  function updateItemBtn() {
+    if (!itemBtn) return;
+    const hasVal = !!(itemSelectEl && itemSelectEl.value);
+    itemBtn.disabled = !hasVal;
+    itemBtn.classList.toggle('disabled-btn', !hasVal);
+  }
+
+  if (itemSelectEl) {
+    itemSelectEl.addEventListener('change', updateItemBtn);
+    if (window.jQuery && $('#item').data('select2')) {
+      $('#item').on('select2:select select2:clear', updateItemBtn);
+    }
+  }
+  updateItemBtn();
+
+  // --- مودال کالا
+  const itemModal      = document.getElementById('item-modal');
+  const itemModalClose = document.getElementById('item-modal-close');
+  const itemModalBody  = document.getElementById('item-modal-body');
+  const itemModalLimit = document.getElementById('item-modal-limit');
+
+  function openItemModal(){
+    if (!itemSelectEl || !itemSelectEl.value) {
+      alert('لطفاً ابتدا کالا را انتخاب کنید.');
+      return;
+    }
+
+    const itemNameEl = document.getElementById('item-modal-title-name');
+    if (itemNameEl && itemSelectEl && itemSelectEl.selectedIndex >= 0) {
+      itemNameEl.textContent = itemSelectEl.options[itemSelectEl.selectedIndex].text;
+    }
+
+    itemModal.style.display = 'block';
+//    document.getElementById('item-modal-limit').focus();
+    ensureLimit(itemModalLimit);
+    loadItemTx();
+  }
+  function closeItemModal(){ itemModal.style.display = 'none'; }
+
+  function loadItemTx(){
+    const iid = itemSelectEl.value;
+    const n = Math.max(1, Math.min(200, parseInt(itemModalLimit.value, 10)));
+
+    const source = window.PAGE_SOURCE || "";
+    itemModalBody.innerHTML = '<tr><td colspan="6" style="text-align:center;">در حال دریافت...</td></tr>';
+
+    fetch("{% url 'get_item_transactions' %}?item="+encodeURIComponent(iid)+"&limit="+n+"&source="+encodeURIComponent(source), {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(async (r) => {
+      const text = await r.text();
+      itemModalBody.innerHTML = r.ok
+        ? text
+        : (/^\s*</.test(text) ? text
+           : `<tr><td colspan="6" style="color:#b00020;white-space:pre-wrap;direction:ltr;text-align:left">خطا: ${text}</td></tr>`);
+    })
+    .catch(err => {
+      console.error(err);
+      itemModalBody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#b00020;">ارتباط برقرار نشد</td></tr>';
+    });
+  }
+
+  if (itemBtn)         itemBtn.addEventListener('click', openItemModal);
+  if (itemModalClose)  itemModalClose.addEventListener('click', closeItemModal);
+  if (itemModal)       itemModal.addEventListener('click', (e)=>{ if(e.target === itemModal) closeItemModal(); });
+  if (itemModalLimit)  itemModalLimit.addEventListener('input', ()=>{ clearTimeout(window.__it); window.__it = setTimeout(loadItemTx, 200); });
+
+  // مودال مشتری
+  const partyModal      = document.getElementById('party-modal');
+  const partyModalClose = document.getElementById('party-modal-close');
+  const partyModalBody  = document.getElementById('party-modal-body');
+  const partyModalLimit = document.getElementById('party-modal-limit');
+
+  const openPartyModal = () => {
+    if (!partySelectEl || !partySelectEl.value) {
+      alert('لطفاً ابتدا مشتری را انتخاب کنید.');
+      return;
+    }
+
+    const partyNameEl = document.getElementById('party-modal-title-name');
+    if (partyNameEl && partySelectEl && partySelectEl.selectedIndex >= 0) {
+      partyNameEl.textContent = partySelectEl.options[partySelectEl.selectedIndex].text;
+    }
+
+    partyModal.style.display = 'block';
+//    document.getElementById('party-modal-limit').focus();
+    ensureLimit(partyModalLimit);
+    loadPartyTx();
+  };
+  const closePartyModal = () => { partyModal.style.display = 'none'; };
+
+  const loadPartyTx = () => {
+    const pid = partySelectEl.value;
+    const n = Math.max(1, Math.min(200, parseInt(itemModalLimit.value, 10)));
+    const source = window.PAGE_SOURCE || "";
+
+    partyModalBody.innerHTML = '<tr><td colspan="7" style="text-align:center;">در حال دریافت...</td></tr>';
+
+
+    fetch("{% url 'get_party_transactions' %}?party="+encodeURIComponent(pid)+"&limit="+n+"&source="+encodeURIComponent(source), {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(async (r) => {
+      const text = await r.text();   // متن پاسخ را هم بگیر
+      // اگر OK نبود، همان متن را داخل tbody نشان بده تا خطا را ببینی
+      partyModalBody.innerHTML = r.ok
+        ? text
+        : (/^\s*</.test(text) ? text : `<tr><td colspan="7" style="color:#b00020;white-space:pre-wrap;direction:ltr;text-align:left">${text}</td></tr>`);
+    })
+    .catch(err => {
+      partyModalBody.innerHTML = `<tr><td colspan="7" style="color:#b00020;">${err}</td></tr>`;
+    });
+  };
+
+
+//    fetch("{% url 'get_party_transactions' %}?party="+encodeURIComponent(pid)+"&limit="+n+"&source="+encodeURIComponent(source), {
+//      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+//    })
+//    .then(r => r.text().then(t => ({ ok: r.ok, status: r.status, text: t })))
+//    .then(({ok, status, text}) => {
+//      if (!ok) {
+//        console.error('AJAX error', status, text);
+//        partyModalBody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#b00020;">خطا ${status}</td></tr>`;
+//        return;
+//      }
+//      partyModalBody.innerHTML = text;   // فقط TR ها
+//    })
+//    .catch(err => {
+//      console.error(err);
+//      partyModalBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#b00020;">ارتباط برقرار نشد</td></tr>';
+//    });
+//  };
+
+  if (partyBtn) partyBtn.addEventListener('click', openPartyModal);
+  if (partyModalClose) partyModalClose.addEventListener('click', closePartyModal);
+  if (partyModal) partyModal.addEventListener('click', (e)=>{ if(e.target === partyModal) closePartyModal(); });
+  if (partyModalLimit) partyModalLimit.addEventListener('input', ()=>{ clearTimeout(window.__pt); window.__pt=setTimeout(loadPartyTx, 200); });
+
+  document.addEventListener('keydown', function(event) {
+    if (event.key === "Escape") {
+      partyModal.style.display = 'none';
+      itemModal.style.display = 'none';
+    }
+  });
+
+  const opType          = "{{ op_type|default:'' }}";
+
+  const itemSelect      = document.getElementById('item');
+  const unitPriceInput  = document.getElementById('unit_price');
+  const sellPriceDisp   = document.getElementById('sell-price-display');
+  const endpoint = "{% url 'get_sell_price' %}";
+  const stockDisp       = document.getElementById('stock-display');
+  const stockUnitDisp   = document.getElementById('stock-unit');
+
+  const qtyInput        = document.getElementById('qty');
+  const totalPriceInput = document.getElementById('total_price');
+
+// --- اعداد فارسی برای تاریخ شمسی در نمایش، ولی انگلیسی در ارسال فرم ---
+
+  const dateShamsiInput = document.getElementById('id_date_shamsi'); // اگر id فرق دارد، مطابق رندر خودت عوض کن
+
+  function toFaDigits(s){
+    return String(s||'').replace(/[0-9]/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
+  }
+  function toEnDigits(s){
+    return String(s||'').replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
+  }
+
+  // حین تایپ/پیست: نمایش با ارقام فارسی
+  if (dateShamsiInput) {
+    const formatDateFa = () => {
+      // فقط رقم‌ها را فارسی کن؛ نشانه‌های جداکننده مثل "-" یا "/" دست نمی‌خورند
+      const val = dateShamsiInput.value;
+      dateShamsiInput.value = toFaDigits(val);
+    };
+    dateShamsiInput.addEventListener('input', formatDateFa);
+    dateShamsiInput.addEventListener('change', formatDateFa);
+
+    // در لود اولیه صفحه هم اگر مقداری هست، فارسی‌اش کن
+    formatDateFa();
+
+    // لحظه ارسال فرم: به انگلیسی برگردون تا بک‌اند بتونه تبدیل تقویم رو انجام بده
+    const formEl = dateShamsiInput.closest('form');
+    if (formEl) {
+      formEl.addEventListener('submit', () => {
+        dateShamsiInput.value = toEnDigits(dateShamsiInput.value);
+      });
+    }
+  }
+
+  function toEn(s){
+    s = String(s||'')
+      // حذف علامت‌های جهت متن که بعضی کیبوردها می‌گذارند
+      .replace(/[\u200e\u200f]/g,'')
+      // حذف جداکننده‌های هزارگانی: کاما، عربی، NBSP و NNBSP
+      .replace(/[,\u066C\u00A0\u202F]/g,'')
+      // تبدیل جداکننده اعشار عربی (٫) و نقطه به نقطه استاندارد
+      .replace(/[٫.]/g,'.')
+      // تبدیل ارقام فارسی به انگلیسی
+      .replace(/[۰-۹]/g, d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
+    return s;
+  }
+
+  function fa(n){
+    try {
+      var num = Number(n);
+      if (window.Intl && Intl.NumberFormat) {
+        return new Intl.NumberFormat('fa-IR').format(num);
+      }
+      // fallback ساده: گروه‌بندی با سه‌رقمی و تبدیل رقم‌ها به فارسی
+      return String(Math.trunc(num)).replace(/\B(?=(\d{3})+(?!\d))/g, '٬').replace(/\d/g, d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
+    } catch(e){
+      return n;
+    }
+  }
+
+  function num(el){ const v=toEn(el?.value||''); const n=parseFloat(v); return isNaN(n)?NaN:n; }
+  function recalc(){
+    const q=num(qtyInput), u=num(unitPriceInput);
+    totalPriceInput && (totalPriceInput.value = (!isNaN(q)&&!isNaN(u)) ? fa(q*u) : '');
+  }
+
+  // فرمت و محاسبه حین تایپ
+  function formatOnInput(el){
+    if(!el) return;
+    el.addEventListener('input', () => {
+      const raw = toEn(el.value);
+      if (raw==='' || isNaN(raw)) return;
+      el.value = fa(raw);
+      recalc();
+    });
+    el.addEventListener('change', recalc);
+  }
+  formatOnInput(qtyInput);
+  formatOnInput(unitPriceInput);
+
+  // در حالت "خرید": اگر کاربر «قیمت کل» را تغییر داد، «قیمت واحد» را از روی آن حساب کن
+  if (opType !== 'فروش' && totalPriceInput) {
+    const backcalcUnit = () => {
+      const q = num(qtyInput);
+      const t = num(totalPriceInput);
+      if (isNaN(q) || q <= 0 || isNaN(t)) return;
+      const u = t / q;
+      if (unitPriceInput) unitPriceInput.value = fa(u);
+    };
+
+    totalPriceInput.addEventListener('input', () => {
+      const raw = toEn(totalPriceInput.value);
+      if (raw === '' || isNaN(raw)) return;
+      totalPriceInput.value = fa(raw);
+      backcalcUnit();
+    });
+    totalPriceInput.addEventListener('change', backcalcUnit);
+  }
+
+  // قیمت/موجودی/واحد را بر اساس آیتم انتخابی بگیر و نمایش بده
+  if (itemSelect && sellPriceDisp) {
+    const handler = () => {
+      const itemId = itemSelect.value;
+      if (!itemId) {
+        sellPriceDisp.textContent = '—';
+        if (stockDisp)     stockDisp.textContent     = '—';
+        if (stockUnitDisp) stockUnitDisp.textContent = '';
+        return;
+      }
+
+      fetch(`${endpoint}?item_id=${encodeURIComponent(itemId)}`, { credentials: 'same-origin' })
+        .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+        .then(data => {
+          const sp = Number(data?.sell_price);                 // ممکن است 0 هم باشد
+          const st = Number(data?.stock);
+          const un = (typeof data?.unit === 'string') ? data.unit : '';
+
+          if (stockDisp)     stockDisp.textContent     = isNaN(st) ? '—' : fa(st);
+          if (stockUnitDisp) stockUnitDisp.textContent = un || '';
+          sellPriceDisp.textContent = isNaN(sp) ? '—' : fa(sp);
+        })
+        .catch(err => {
+          console.error('get_sell_price error:', err);
+          sellPriceDisp.textContent = '—';
+          if (stockDisp)     stockDisp.textContent     = '—';
+          if (stockUnitDisp) stockUnitDisp.textContent = '';
+        });
+    };
+
+    // بایند رویدادها (هم نیتیو، هم Select2)
+    itemSelect.addEventListener('change', handler);
+    if (window.jQuery && $('#item').data('select2')) {
+      $('#item').on('select2:select', handler);
+    }
+
+    // اگر از قبل آیتمی انتخاب شده، مقدار اولیه را بگیر
+    handler();
+  }
+
+  // بخش مربوط به مودال
+  const recentBody = document.getElementById('recent-tx-body');
+  const recentLimit = document.getElementById('recent-limit');
+
+  // تغییر تعداد «آخرین تراکنش‌ها» زیر فرم
+  const refreshRecent = () => {
+    const n = Math.max(1, Math.min(200, parseInt(recentLimit.value||'20',10)));
+    fetch("{% url 'get_recent_transactions' %}?limit=" + n + (opType ? ("&op_type=" + encodeURIComponent(opType)) : ""))
+      .then(r => r.text())
+      .then(html => { if (recentBody) recentBody.innerHTML = html; })
+      .catch(console.error);
+  };
+  if (recentLimit) {
+    let t=null;
+    recentLimit.addEventListener('input', ()=>{ clearTimeout(t); t=setTimeout(refreshRecent, 200); });
+    recentLimit.addEventListener('change', refreshRecent);
+  }
+
+  // بارگذاری اولیه لیست زیر فرم
+  refreshRecent();
+});
+</script>
+{% endblock %}
