@@ -1,0 +1,7 @@
+*.sqlite3
+*.xlsm
+backups/
+__pycache__/
+*.pyc
+staticfiles/
+static_root/
