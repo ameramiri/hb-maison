@@ -1,0 +1,90 @@
+
+{% with op_type='خرید' %}
+
+{% extends 'base.html' %}
+{% block title %}ثبت {{ op_type }}{% endblock %}
+{% block content %}
+<h2>ثبت {{ op_type }}</h2>
+
+<form id="tx-form" method="post" novalidate>
+  {% csrf_token %}
+  <div class="form-grid">
+
+    <div class="field third">
+      <label for="party">طرف حساب ({{ op_type == 'فروش'|yesno:'مشتری,فروشنده' }})</label>
+      {{ form.party }}
+      <div class="help">جستجو با تایپ بخشی از نام</div>
+    </div>
+
+    <div class="field third">
+      <label for="item">کالا</label>
+      {{ form.item }}
+    </div>
+
+    <div class="field third">
+      <label for="date_shamsi">تاریخ (شمسی)</label>
+      {{ form.date_shamsi }}
+      <div class="help">ارقام انگلیسی تایپ شود؛ ذخیره‌سازی میلادی در بک‌اند انجام می‌شود.</div>
+    </div>
+
+    <div class="field third">
+      <label for="quantity">تعداد</label>
+      {{ form.quantity }}
+    </div>
+
+    <div class="field third">
+      <label for="unit_price">قیمت واحد (تومان)</label>
+      {{ form.unit_price }}
+      <div class="help">جداکننده سه‌رقمی نمایش داده می‌شود؛ مقدار ذخیره‌سازی بدون کاما است.</div>
+    </div>
+
+    <div class="field third">
+      <label for="total_price">قیمت کل (تومان)</label>
+      {{ form.total_price }}
+      <div class="help">{% if op_type == 'خرید' %}در خرید، قابل ویرایش است و **قیمت واحد** بر مبنای آن محاسبه می‌شود.{% else %}بر اساس تعداد × قیمت واحد محاسبه می‌شود.{% endif %}</div>
+    </div>
+
+    <div class="field">
+      <label for="note">توضیحات</label>
+      {{ form.note }}
+    </div>
+
+  </div>
+
+  <div class="actions">
+    <button type="submit" class="btn btn-primary">ثبت {{ op_type }}</button>
+    <button type="button" id="btn-reset" class="btn btn-ghost">ریست فرم</button>
+  </div>
+</form>
+
+<hr style="margin:18px 0;" />
+
+<div class="row">
+  <div style="max-width:240px;">
+    <label for="recent_count">تعداد رکوردهای اخیر</label>
+    <input id="recent_count" type="number" min="5" max="200" value="20">
+  </div>
+</div>
+
+<div class="table-wrap" style="margin-top:10px;">
+  <table id="recent-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>نوع</th>
+        <th>تاریخ</th>
+        <th>طرف حساب</th>
+        <th>کالا</th>
+        <th class="center">تعداد</th>
+        <th>قیمت واحد</th>
+        <th>قیمت کل</th>
+      </tr>
+    </thead>
+    <tbody id="recent-body">
+      {% include 'tx_table_body.html' %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% endwith %}

@@ -1,0 +1,81 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>{% block title %}حسابداری{% endblock %}</title>
+  <link href="https://v1.fontapi.ir/css/Vazir" rel="stylesheet">
+
+  <link rel="stylesheet" href="{% static 'css/base.css' %}">
+  <link rel="stylesheet" href="{% static 'css/forms.css' %}">
+  <link rel="stylesheet" href="{% static 'css/badges.css' %}">
+  <link rel="stylesheet" href="{% static 'css/modal.css' %}">
+  <link rel="stylesheet" href="{% static 'css/navbar.css' %}">
+  <link rel="stylesheet" href="{% static 'css/reports.css' %}">
+  <link rel="stylesheet" href="{% static 'css/tables.css' %}">
+
+  <script src="{% static 'js/numbers.js' %}"></script>
+
+  <!-- jQuery و Select2 از CDN -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+  <style>
+    /* برای حذف چشمک اولیه */
+    .hide-until-ready{ visibility:hidden; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="navbar-brand">سیستم حسابداری شخصی</div>
+
+    <div class="hamburger">
+      <div></div>
+      <div></div>
+      <div></div>
+    </div>
+
+    <div class="navbar-menu" id="menu">
+      <a href="{% url 'register_sell' %}">ثبت فروش</a>
+      <a href="{% url 'register_purchase' %}">ثبت خرید</a>
+      <a href="{% url 'register_receipt' %}">دریافت وجه</a>
+      <a href="{% url 'register_payment' %}">پرداخت وجه</a>
+      <a href="{% url 'items_list' %}">کالاها</a>
+      <a href="{% url 'register_party' %}">طرف حساب</a>
+      <a href="{% url 'transaction_list' %}">تراکنش‌ها</a>
+      <a href="{% url 'customer_balance_report' %}">مشتریان</a>
+      <a href="{% url 'monthly_sales' %}">📊 فروش ماهانه</a>
+
+      {% if user.is_authenticated %}
+        <a href="{% url 'logout' %}">خروج</a>
+      {% else %}
+        <a href="{% url 'login' %}">ورود</a>
+      {% endif %}
+    </div>
+  </nav>
+
+  <div id="page-root" class="main-container hide-until-ready">
+    {% block content %}{% endblock %}
+  </div>
+
+  {% include "ledger/partials/modals.html" %}
+
+  {% block scripts %}{% endblock %}
+
+  <!-- اسکریپت‌های سراسری که همیشه باید باشند -->
+  <script src="{% static 'js/app.js' %}"></script>
+  <script src="{% static 'js/modals.js' %}"></script>
+
+  <script>
+    // وقتی صفحه آماده شد و اسکریپت‌های صفحه کارشان را کردند،
+    // خود اسکریپت صفحه باید این کلاس را بردارد. اگر فراموش شد، این fallback بعد از یک تیک می‌بردارد.
+    window.requestAnimationFrame(()=> {
+      const root = document.getElementById('page-root');
+      if(root) root.classList.remove('hide-until-ready');
+    });
+  </script>
+</body>
+</html>

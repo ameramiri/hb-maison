@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load format_filters %}
+
+{% block title %}ثبت طرف حساب{% endblock %}
+
+{% block content %}
+  <h2>ثبت طرف حساب</h2>
+
+  <form method="post">
+    {% csrf_token %}
+
+    <div class="form-row">
+      <label for="name">طرف حساب:</label>
+      <input type="text" id="name" name="name" required>
+    </div>
+
+    <div class="form-row">
+      <label for="role">نقش:</label>
+      <select id="role" name="role" class="select2" required>
+        <option value="customer">مشتری</option>
+        <option value="supplier">فروشنده</option>
+        <!-- 🔧 جدید: گزینهٔ هردو
+        <option value="both">هردو</option> -->
+      </select>
+    </div>
+
+    <button type="submit" class="submit-btn">ثبت طرف حساب</button>
+  </form>
+
+  {% if recent_parties %}
+    <!-- 🔧 جدید: فیلتر سریع -->
+    <div class="filters" style="margin:16px 0;">
+      {% with active=request.GET.role %}
+        <a href="{% url 'register_party' %}" class="{% if not active %}active{% endif %}">همه</a> |
+        <a href="?role=cust" class="{% if active == 'cust' %}active{% endif %}">مشتری</a> |
+        <a href="?role=supp" class="{% if active == 'supp' %}active{% endif %}">فروشنده</a> |
+      {% endwith %}
+    </div>
+
+    <h3 style="margin-top: 8px;">۲۰ طرف حساب آخر</h3>
+    <div class="table-wrap table-scroll">
+      <table class="table-pro">
+        <thead>
+          <tr>
+            <th>نام طرف حساب</th>
+            <th>نقش</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in recent_parties %}
+            <tr>
+              <td style="width:200px;" class="text-clip">{{ p.name }}</td>
+              <td style="text-align:center;">
+                {% if p.is_customer and p.is_supplier %}
+                  <span class="badge badge-cus-sup">مشتری/فروشنده</span>
+                {% elif p.is_customer %}
+                  <span class="badge badge-customer">مشتری</span>
+                {% elif p.is_supplier %}
+                  <span class="badge badge-supplier">فروشنده</span>
+                {% else %}
+                  <span>—</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  if (window.jQuery) {
+    $('#role').select2({
+      width: '250px',
+      dir: 'rtl',
+      minimumResultsForSearch: Infinity
+    });
+  }
+});
+</script>
+{% endblock %}

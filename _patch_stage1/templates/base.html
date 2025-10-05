@@ -1,0 +1,23 @@
+
+{% load static %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}ثبت تراکنش{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      {% block content %}{% endblock %}
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+  <script src="{% static 'js/form-common.js' %}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

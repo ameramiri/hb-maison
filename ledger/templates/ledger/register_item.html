@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load format_filters %}
+
+{% block title %}ثبت کالا{% endblock %}
+
+{% block content %}
+  <h2>ثبت کالا</h2>
+
+  {% if messages %}
+    <ul class="messages">
+      {% for message in messages %}
+        <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+
+    <div class="form-row"> {{ form.name.label_tag }} {{ form.name }} </div>
+    <div class="form-row"> {{ form.unit.label_tag }} {{ form.unit }} </div>
+    <div class="form-row"> {{ form.sell_price.label_tag }} {{ form.sell_price }} <span style="padding:6px;">تومان</span> </div>
+    <div class="form-row"> {{ form.group.label_tag }} {{ form.group }} </div>
+    <div class="form-row"> {{ form.is_consignment.label_tag }} {{ form.is_consignment }} </div>
+    <div class="form-row"> {{ form.commission_amount.label_tag }} {{ form.commission_amount }} <span style="margin-left:12px;">تومان</span>
+                           {{ form.commission_percent }} <span style="margin-right:0px;">%</span> </div>
+
+    <button type="submit" class="submit-btn">ثبت کالا</button>
+  </form>
+
+  {% if recent_items %}
+  <h3 style="margin-top: 24px;">لیست کالاها</h3>
+  <div class="table-wrap table-scroll">
+    <table class="table-pro">
+      <colgroup>
+        <col style="width:120px">
+        <col style="width:50px">
+        <col style="width:120px">
+        <col style="width:60px">
+        <col style="width:100px">
+        <col style="width:120px">
+        <col style="width:60px">
+      </colgroup>
+      <thead>
+        <tr>
+          <th>نام کالا</th>
+          <th>واحد</th>
+          <th>قیمت فروش</th>
+          <th>موجودی</th>
+          <th>گروه</th>
+          <th>امانی؟</th>
+          <th>سهم از فروش</th>
+          <th>درصد فروش</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in recent_items %}
+        <tr>
+          <td style="overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">
+            <a href="#" class="item-link" data-item-id="{{ item.id }}" data-item-name="{{ item.name }}">
+              {{ item.name }}
+            </a>
+          </td>
+          <td class="text-clip">{{ item.unit }}</td>
+          <td class="num">{{ item.sell_price|fa_thousand }}</td>
+          <td class="num">{{ item.inventory.qty|default:"0"|fa_thousand }}</td>
+          <td>{{ item.get_group_display|default:"-" }}</td>
+
+          <td>
+            {% if item.is_consignment %}
+              ✅
+            {% else %}
+              ❌
+            {% endif %}
+          </td>
+
+          <td>{{ item.commission_amount|default:"-   "|fa_thousand }}</td>
+
+          {% if item.commission_percent > 0 %}
+            <td>%{{ item.commission_percent|default:"-"|fa_thousand:2 }}</td>
+          {% else %}
+            <td>-   </td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const sellPriceEl   = setupNumericField('sell_price', 0);
+  const commAmountEl  = setupNumericField('commission_amount', 0);
+  const commPercentEl = setupNumericField('commission_percent', 2); // دو رقم اعشار
+
+  // وقتی مبلغ کمیسیون تغییر کرد
+  commAmountEl?.addEventListener('input', ()=>{
+    if (commAmountEl.value !== ''){ commPercentEl.value = ''; }
+
+    const amount = num(commAmountEl);
+    const sell   = num(sellPriceEl);
+
+    if (amount > sell && sell > 0){
+      alert('سهم از فروش نمی‌تواند بزرگتر از قیمت فروش باشد');
+      commAmountEl.value = '';
+    }
+  });
+
+  // وقتی درصد تغییر کرد
+  commPercentEl?.addEventListener('input', ()=>{
+    if (commPercentEl.value !== ''){ commAmountEl.value = ''; }
+
+    const percent = num(commPercentEl);
+    if (percent > 100){
+      alert('درصد نمی‌تواند بیشتر از ۱۰۰ باشد');
+      commPercentEl.value = '';
+    }
+  });
+
+  // فعال‌سازی Select2 برای گروه
+  if (window.jQuery && $('#group').length) {
+    $('#group').select2({
+      dir:'rtl',
+      placeholder: 'انتخاب گروه کالا',
+      sorter: function(data) {
+        return data.sort((a, b) => a.text.localeCompare(b.text, 'fa', { sensitivity: 'base' }));
+      }
+    });
+    // فوکوس خودکار روی سرچ
+    $(document).on('select2:open', () => {
+      document.querySelector('.select2-container--open .select2-search__field')?.focus();
+    });
+  }
+
+  const consCheckbox = document.getElementById('is_consignment');
+  const commAmount   = document.getElementById('commission_amount');
+  const commPercent  = document.getElementById('commission_percent');
+
+  function toggleCommissionFields(){
+    const enabled = consCheckbox.checked;
+    commAmount.disabled  = !enabled;
+    commPercent.disabled = !enabled;
+
+    if (!enabled){
+      commAmount.value = '';
+      commPercent.value = '';
+    }
+  }
+
+  // بار اول هم اجرا بشه
+  toggleCommissionFields();
+
+  // هنگام تغییر چک‌باکس
+  consCheckbox.addEventListener('change', toggleCommissionFields);
+});
+</script>
+{% endblock %}

@@ -1,0 +1,25 @@
+Patch Stage 1 — Clean Forms & UI (Drop-in)
+
+Files included:
+- templates/base.html
+- templates/register_purchase.html
+- templates/register_sale.html
+- static/css/styles.css
+- static/js/form-common.js
+
+How to apply:
+1) Backup your current templates/static.
+2) Copy the provided files into your Django app where your templates/static are served.
+   - Ensure STATIC_URL and STATICFILES_DIRS are configured.
+3) Make sure your view passes `form` and `op_type` context OR use these wrappers:
+   - register_purchase.html uses `{% with op_type='خرید' %}` and expects a form with fields:
+     party, item, date_shamsi, quantity, unit_price, total_price, note
+   - register_sale.html same as above
+4) After successful POST, redirect to the same view with `?ok=1` to show a toast and reset.
+5) For recent rows AJAX:
+   - When query param `?recent=N` is present and X-Requested-With is XMLHttpRequest,
+     return only `tx_table_body.html` snippet for the N latest records of that op_type.
+
+Notes:
+- Numbers are kept in EN digits during typing; formatting with commas on blur only (no Persian-digit conversion while typing).
+- In فروش, total is read-only and = qty × unit; in خرید, total is editable and unit is recalculated.

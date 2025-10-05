@@ -1,0 +1,153 @@
+/* -------------------
+   ظرف جدول
+-------------------- */
+.table-wrap {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(16,24,40,.06);
+  padding: 8px;
+  margin-top: 16px;
+  border: 1px solid #eef2f7;
+  overflow-x: auto;
+  overflow-y: auto;
+  text-align: right;
+}
+
+/* -------------------
+   جدول اصلی (Pro)
+-------------------- */
+.table-pro {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+  font-size: 14px;
+  direction: rtl;
+  table-layout: auto;
+  background: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+/* هدر */
+.table-pro thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  text-align: right;
+  background: linear-gradient(180deg,#f9fafb 0%,#f2f4f7 100%);
+  color: #111827;
+  font-weight: 600;
+  padding: 10px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+
+/* بدنه */
+.table-pro td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #111827;
+  vertical-align: middle;
+}
+
+.table-pro tr.bold-row {
+  font-weight: 700;
+}
+.table-pro tr.highlight-row td {
+  background-color: #fff3cd !important; /* زرد ملایم */
+  font-weight: 700 !important;
+}
+.table-pro tr.highlight-row:hover td {
+  background-color: #ffe08a !important; /* رنگ کمی پررنگ‌تر برای hover */
+}
+
+/* فوتر */
+.table-pro tfoot td {
+  background: #f1f5f9;
+  font-weight: 700 !important;
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+}
+
+/* ردیف‌های راه‌راه */
+.table-pro tbody tr:nth-child(odd)  { background: #fafafa; }
+.table-pro tbody tr:nth-child(even) { background: #f5f5f5; }
+
+/* Hover */
+.table-pro tbody tr:hover {
+  background: #e2e8f0 !important;
+  cursor: pointer;
+  transition: background-color .2s ease;
+}
+
+/* گرد کردن گوشه‌های جدول */
+.table-pro thead th:first-child { border-top-right-radius: 8px; }
+.table-pro thead th:last-child  { border-top-left-radius: 8px; }
+.table-pro tbody tr:last-child td:first-child { border-bottom-right-radius: 8px; }
+.table-pro tbody tr:last-child td:last-child  { border-bottom-left-radius: 8px; }
+
+/* ستون عددی */
+.table-pro td.num,
+.table-pro th.num {
+  text-align: left;
+  direction: ltr;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* ستون‌های متنی طولانی */
+.table-pro .text-clip {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* -------------------
+   نسخه‌های ویژه
+-------------------- */
+
+/* نسخه فشرده (مثلاً داخل مودال‌ها) */
+.table-pro.compact th,
+.table-pro.compact td {
+  padding: 4px 4px;
+  font-size: 13px;
+  line-height: 1;
+}
+
+/* جدول تراکنش‌ها */
+.table-pro.transactions {
+  min-width: 800px;
+}
+.table-pro.transactions th,
+.table-pro.transactions td {
+  padding: 12px 14px;
+}
+
+/* -------------------
+   کلاس‌های عمومی
+-------------------- */
+.text-clip { max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.qty-center { text-align:center; }
+.num { text-align:left; direction:ltr; }
+.neg { color:#b00020 !important; font-weight:600; }
+
+/* -------------------
+   واکنش‌گرا
+-------------------- */
+@media (max-width: 768px) {
+  .table-pro {
+    font-size: 12px;
+  }
+  .table-pro th,
+  .table-pro td {
+    padding: 6px;
+  }
+  .table-pro.compact th,
+  .table-pro.compact td {
+    padding: 4px 4px;
+    font-size: 10px;
+    line-height: 1;
+  }
+}

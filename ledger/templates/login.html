@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}ورود به سیستم{% endblock %}
+
+{% block content %}
+  <div style="max-width: 400px; margin: 80px auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+    <h2 style="text-align: center; margin-bottom: 30px;">ورود به سیستم</h2>
+    <form method="post" novalidate>
+      {% csrf_token %}
+      <div style="margin-bottom: 20px;">
+        <label>نام کاربری:</label>
+        {{ form.username }}
+      </div>
+      <div style="margin-bottom: 20px;">
+        <label>رمز عبور:</label>
+        {{ form.password }}
+      </div>
+      {% if form.errors %}
+        <p style="color: red;">نام کاربری یا رمز عبور اشتباه است.</p>
+      {% endif %}
+      <button type="submit" style="width: 100%; padding: 10px; background-color: #4CAF50; color: white; border: none; border-radius: 6px;">
+        ورود
+      </button>
+    </form>
+  </div>
+{% endblock %}

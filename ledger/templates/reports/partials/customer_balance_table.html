@@ -1,0 +1,30 @@
+<!-- reports/partials/customer_balance_table.html -->
+{% load format_filters %}
+<div class="table-wrap">
+  <table id="main-table" class="table-pro">
+    <thead>
+      <tr>
+        <th>نام مشتری</th>
+        <th>مانده</th>
+        <th>کل خرید</th>
+        <th>جمع پرداختی</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td class="text-clip">
+          <a href="#" class="party-link" data-party-id="{{ r.party_id }}" data-party-name="{{ r.party_name }}">
+            {{ r.party_name }}
+          </a>
+        </td>
+        <td>{{ r.balance|fa_thousand }}</td>
+        <td>{{ r.total_purchase|fa_thousand }}</td>
+        <td>{{ r.total_payment|fa_thousand }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4" style="text-align:center;">موردی یافت نشد</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

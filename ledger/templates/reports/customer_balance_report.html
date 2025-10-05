@@ -1,0 +1,64 @@
+{# templates/reports/customer_balance_report.html #}
+{% extends 'base.html' %}
+{% load format_filters %}
+
+{% block title %}گزارش مانده حساب مشتریان{% endblock %}
+
+{% block content %}
+<h2>گزارش مانده حساب مشتریان</h2>
+
+<form method="get" class="filter-form"
+      style="margin:1rem 0; display:flex; flex-wrap:wrap; gap:.75rem; align-items:center;">
+  <input type="text" name="q" value="{{ q }}"
+         placeholder="جستجو در نام مشتری…"
+         style="padding:.4rem .6rem; width:200px;"
+         onkeydown="if(event.key==='Enter'){ this.form.submit(); }">
+
+  <div style="display:flex; align-items:center; flex-basis:100%; margin-top:.25rem; gap:2rem;">
+    <label style="display:inline-flex; align-items:center; gap:.35rem; cursor:pointer;">
+      <input id="exclude_zero" type="checkbox" name="exclude_zero"
+             {% if exclude_zero %}checked{% endif %}
+             style="margin:0; width:16px; height:16px; cursor:pointer;">
+      حذف مشتریان با مانده صفر
+    </label>
+
+    <div class="totals-bar-single" style="padding:.2rem .75rem; background:#f8fafc; border-radius:6px; font-weight:bold;">
+      <span class="label">جمع مانده:</span>
+      <span class="value" dir="ltr">{{ totals.sum_balance|fa_thousand }}</span>
+    </div>
+  </div>
+
+</form>
+
+<div id="table-container">
+  {% include "reports/partials/customer_balance_table.html" %}
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.addEventListener('load', function() {
+    const qInput = document.querySelector('input[name="q"]');
+    if (qInput) qInput.focus();
+  });
+
+  document.getElementById('exclude_zero').addEventListener('change', function() {
+    document.querySelector('.filter-form').submit();
+  });
+
+  (function () {
+    const wrap = document.querySelector('.table-wrap');
+    if (!wrap) return;
+
+    function snapRight() {
+      if (window.matchMedia('(max-width:768px)').matches) {
+        wrap.scrollLeft = wrap.scrollWidth; // بره سمت راست
+      }
+    }
+
+    window.addEventListener('load', () => requestAnimationFrame(snapRight));
+    window.addEventListener('resize', snapRight);
+  })();
+</script>
+{% endblock %}

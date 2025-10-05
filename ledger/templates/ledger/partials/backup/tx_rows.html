@@ -1,0 +1,33 @@
+{% load format_filters %}
+
+{% if txs %}
+  {% for t in txs %}
+    <tr>
+      <td>{{ t.date_shamsi|to_persian_digits }}</td>
+      <td><span class="badge-op {{ t.op_badge_class }}">{{ t.op_label }}</span></td>
+      <td class="text-clip">{{ t.item.name }}</td>
+
+      {% if t.is_qty_based %}
+        <td class="qty-center">{{ t.qty|fa_thousand }}</td>
+        <td class="num">{{ t.unit_price|fa_thousand }}</td>
+        <td class="num">{{ t.total_price|fa_thousand }}</td>
+      {% else %}
+        <td class="qty-center">-</td>
+        <td class="qty-center">-</td>
+        <td class="num">{{ t.total_price|fa_thousand }}</td>
+      {% endif %}
+
+      <td class="text-clip">{{ t.party.name }}</td>
+
+      {% if t.running_balance < 0 %}
+        <td><strong style="color:#b00020;">{{ t.running_balance|fa_thousand }}</strong></td>
+      {% else %}
+        <td>{{ t.running_balance|fa_thousand }}</td>
+      {% endif %}
+    </tr>
+  {% endfor %}
+{% else %}
+  <tr>
+    <td colspan="8" class="text-center">هیچ تراکنشی یافت نشد.</td>
+  </tr>
+{% endif %}

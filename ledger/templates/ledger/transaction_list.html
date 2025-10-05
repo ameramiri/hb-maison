@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load format_filters %}
+
+{% block title %}لیست تراکنش‌ها{% endblock %}
+
+{% block content %}
+<h2>لیست تراکنش‌ها</h2>
+
+<style>
+    .filter-form #id_date_shamsi { width:90px; height:15px; }
+    .filter-form button[name="shift"] {height: 25px; min-width: 25px; padding: 0 6px; line-height: 1; font-size: 12px; }
+</style>
+
+<form method="get" class="filter-form" style="display:flex; gap:12px; align-items:flex-end; margin-bottom:12px; flex-wrap:wrap;">
+  <div>
+    {{ form.op_type.label_tag }}
+    {{ form.op_type }}
+  </div>
+  <div>
+    {{ form.item.label_tag }}
+    {{ form.item }}
+  </div>
+  <div>
+    {{ form.party.label_tag }}
+    {{ form.party }}
+  </div>
+  <div>
+    <div style="display:flex; align-items:center; gap:6px;">
+      <button type="submit" name="shift" value="prev" title="روز قبل" style="padding:4px 8px;">‹</button>
+      {{ form.date_shamsi }}
+      <button type="submit" name="shift" value="next" title="روز بعد" style="padding:4px 8px;">›</button>
+    </div>
+  </div>
+</form>
+
+<div id="scroll-box" class="table-wrap" style="height:500px; overflow-y:auto;">
+  <table class="table-pro">
+    <thead>
+      <tr>
+        <th>تاریخ</th>
+        <th>نوع عملیات</th>
+        <th>طرف حساب</th>
+        <th>کالا</th>
+        <th>تعداد</th>
+        <th>قیمت واحد</th>
+        <th>مبلغ کل</th>
+        <th>قیمت تمام شده</th>
+        <th>توضیحات</th>
+      </tr>
+    </thead>
+    <tbody id="tx-body" data-last-id="{{ transactions.0.id }}">
+      {% include "ledger/partials/tx_rows.html" with transactions=transactions %}
+    </tbody>
+  </table>
+</div>
+
+<input type="hidden" id="prev-page" value="{{ previous_page|default:'' }}">
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/modals.js' %}"></script>
+
+<script>
+window.PAGE_SOURCE = "{{ page_source|default:'list' }}";
+
+document.addEventListener('DOMContentLoaded', function(){
+  // --- Select2 ---
+  if (window.jQuery) {
+    $(document).on('select2:open', () => {
+      // پیدا کردن آخرین باکس سرچ Select2 و فوکوس دادن بهش
+      let searchBox = document.querySelector('.select2-container--open .select2-search__field');
+      if (searchBox) {
+        searchBox.focus();
+      }
+    });
+
+    if ($('#id_op_type').data('select2')) $('#id_op_type').select2('destroy');
+    if ($('#id_item').data('select2'))  $('#id_item').select2('destroy');
+    if ($('#id_party').data('select2')) $('#id_party').select2('destroy');
+
+    $('#id_op_type').select2({ width:'100px', dir:'rtl', minimumResultsForSearch: Infinity });
+    $('#id_item').select2({  width:'172px', dir:'rtl' });
+    $('#id_party').select2({ width:'172px', dir:'rtl' });
+  }
+
+  // --- فرم فیلتر ---
+  const form = document.querySelector('.filter-form');
+  if (form) {
+    const autoSubmit = (() => {
+      let t = null;
+      return (delay = 120) => { clearTimeout(t); t = setTimeout(() => form.requestSubmit(), delay); };
+    })();
+
+    const hookChange = (sel) => {
+      if (!sel) return;
+      sel.addEventListener('change', () => autoSubmit());
+      if (window.jQuery && jQuery(sel).data('select2')) {
+        jQuery(sel).on('select2:select select2:clear', () => autoSubmit());
+      }
+    };
+
+    hookChange(document.getElementById('id_op_type'));
+    hookChange(document.getElementById('id_item'));
+    hookChange(document.getElementById('id_party'));
+
+    const dateInput = document.getElementById('id_date_shamsi');
+    const toFa = s => String(s||'').replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
+    const toEn = s => String(s||'').replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
+    const isFullDate = s => /^\d{4}\/\d{2}\/\d{2}$/.test(s);
+
+    if (dateInput) {
+      dateInput.value = toFa(dateInput.value);
+      dateInput.addEventListener('input', () => {
+        dateInput.value = toFa(dateInput.value);
+        const valEn = toEn(dateInput.value.replace(/-/g,'/').trim());
+        if (isFullDate(valEn)) autoSubmit();
+      });
+      dateInput.addEventListener('change', () => autoSubmit(0));
+      dateInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); autoSubmit(0); }});
+    }
+  }
+
+  // --- Infinite scroll ---
+  const box = document.getElementById("scroll-box");
+  const body = document.getElementById("tx-body");
+  let loading = false;
+  let lastId = body.dataset.lastId;
+
+  setTimeout(() => { box.scrollTop = box.scrollHeight; }, 50);
+
+  box.addEventListener("scroll", async function() {
+    if (box.scrollTop === 0 && !loading && lastId) {
+      loading = true;
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.set("last_id", lastId);
+
+        const res = await fetch(url.toString(), {
+          headers: { "X-Requested-With": "XMLHttpRequest" }
+        });
+        const data = await res.json();
+
+        const oldHeight = box.scrollHeight;
+        body.insertAdjacentHTML("afterbegin", data.html);
+        box.scrollTop = box.scrollHeight - oldHeight;
+
+        lastId = data.last_id;
+        if (!data.has_more) lastId = null;
+      } catch (err) {
+        console.error("Ajax error", err);
+      }
+      loading = false;
+    }
+  });
+});
+</script>
+{% endblock %}

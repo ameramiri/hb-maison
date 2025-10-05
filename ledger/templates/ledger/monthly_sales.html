@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% load format_filters %}
+
+{% block title %}عملکرد ماهانه{% endblock %}
+
+{% block content %}
+<h2>خلاصه عملکرد ماهانه</h2>
+
+<div class="table-wrap">
+  <table class="table-pro">
+    <thead>
+      <tr>
+        <th>ماه</th>
+        <th>فروش</th>
+        <th>سود</th>
+        <th>درصد سود</th>
+        <th style="color:red">کارکرد</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in monthly_sales %}
+      <tr {% if row.total_sales == max_sales and max_sales > 0 %} class="bold-row" {% endif %}>
+        <td>
+            <a href="#" class="sales-month-link" data-year="{{ row.year }}" data-month="{{ row.month }}" data-month-name="{{ row.month_name }}">
+            <strong>{{ row.year|to_persian_digits }} {{ row.month_name }}</strong></a>
+        </td>
+        <td>{{ row.total_sales|fa_thousand }}</td>
+        <td>{{ row.profit|fa_thousand }}</td>
+        <td>{{ row.profit_percent|fa_percent }}</td>
+        <td class="days-cell">{{ row.days_with_sales|fa_thousand }} روز</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="empty-state">هیچ فروشی ثبت نشده است</td></tr>
+      {% endfor %}
+    </tbody>
+      <tr class="bold-row">
+        <td>جمع کل:</td>
+        <td>{{ totals.sum_sales|fa_thousand }}</td>
+        <td>{{ totals.sum_profit|fa_thousand }}</td>
+        <td>{{ totals.profit_percent|fa_percent }}</td>
+        <td class="days-cell"><strong>{{ totals.sum_days|fa_thousand }} روز</strong></td>
+      </tr>
+    <tbody>
+    </tbody>
+  </table>
+</div>
+
+<div id="monthly-modal" class="modal" style="display:none;">
+  <div class="modal-content" style="max-width:800px;">
+    <div class="modal-header">
+      <h3 id="monthly-modal-title">عملکرد ماه</h3>
+      <button type="button" id="monthly-modal-close">×</button>
+    </div>
+    <div class="modal-body" id="monthly-modal-body">
+      <!-- جزئیات روزانه اینجا با AJAX لود میشه -->
+      <p style="text-align:center; color:#888;">در حال بارگذاری...</p>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<style>
+  td.days-cell {
+    color: red;
+    font-weight: bold;
+  }
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const modal = document.getElementById("monthly-modal");
+  const modalBody = document.getElementById("monthly-modal-body");
+  const modalTitle = document.getElementById("monthly-modal-title");
+  const closeBtn = document.getElementById("monthly-modal-close");
+
+  // بستن مودال
+  closeBtn.addEventListener("click", () => modal.style.display = "none");
+  modal?.addEventListener('click', (e)=>{ if(e.target===modal) modal.style.display = "none"; });
+
+  document.addEventListener('keydown', (e)=>{
+    if(e.key === 'Escape'){ modal.style.display = "none" }
+  });
+
+  // روی هر لینک ماه کلیک بشه
+  document.querySelectorAll(".sales-month-link").forEach(link => {
+    link.addEventListener("click", function (e) {
+      e.preventDefault();
+      const year = this.dataset.year;
+      const month = this.dataset.month;
+      const monthName = this.dataset.monthName;
+
+      modal.style.display = "block";
+      modalTitle.innerText = `فروش ${monthName} ${toFaDigits(year)}`;
+      modalTitle.style.paddingRight = "20px";
+      modalBody.innerHTML = "<p style='text-align:center; color:#888;'>در حال بارگذاری...</p>";
+
+      // درخواست AJAX به ویو جنگو
+      fetch(`/${year}/${month}/`)
+        .then(res => res.text())
+        .then(html => {
+          modalBody.innerHTML = html;
+        })
+        .catch(err => {
+          modalBody.innerHTML = "<p style='color:red;'>خطا در بارگذاری اطلاعات</p>";
+        });
+    });
+  });
+});
+</script>
+
+{% endblock %}

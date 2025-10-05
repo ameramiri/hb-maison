@@ -1,0 +1,38 @@
+<!-- ledger/partials/daily_sales.html -->
+{% load format_filters %}
+<div class="table-wrap">
+<table class="table-pro compact">
+  <thead>
+    <tr>
+      <th>روز</th>
+      <th>فروش</th>
+      <th>سود</th>
+      <th>درصد سود</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in daily_sales %}
+    <tr {% if row.total_sales == max_sales and max_sales > 0 %} class="bold-row" {% endif %}>
+      <td>{{ row.day|to_persian_digits }}</td>
+      <td>{{ row.total_sales|fa_thousand }}</td>
+      <td>{{ row.profit|fa_thousand }}</td>
+      {% if row.total_sales == 0 %}
+        <td>-</td>
+      {% else %}
+        <td>{{ row.profit_percent|fa_percent }}</td>
+      {% endif %}
+    </tr>
+    {% empty %}
+    <tr><td colspan="4">هیچ فروشی در این ماه ثبت نشده است</td></tr>
+    {% endfor %}
+  </tbody>
+  <tfoot>
+    <tr>
+      <td>جمع کل</td>
+      <td>{{ totals.sum_sales|fa_thousand }}</td>
+      <td>{{ totals.sum_profit|fa_thousand }}</td>
+      <td>{{ totals.profit_percent|fa_percent }}</td>
+    </tr>
+  </tfoot>
+</table>
+</div>

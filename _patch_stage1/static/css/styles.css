@@ -1,0 +1,150 @@
+
+/* styles.css — Stage 1 clean UI (RTL, Persian font, consistent inputs) */
+@font-face {
+  font-family: 'Vazirmatn';
+  src: local('Vazirmatn'), local('Vazir');
+  font-weight: 400;
+  font-style: normal;
+}
+:root {
+  --radius: 14px;
+  --pad: 12px;
+  --gap: 10px;
+  --shadow: 0 6px 20px rgba(0,0,0,.07);
+  --accent: #0ea5e9; /* cyan-ish */
+  --ok: #16a34a;
+  --err: #dc2626;
+  --muted: #6b7280;
+}
+* { box-sizing: border-box; }
+html, body {
+  direction: rtl;
+  font-family: 'Vazirmatn', Tahoma, sans-serif;
+  background: #fafafa;
+  color: #0f172a;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+.container {
+  max-width: 980px;
+  margin: 24px auto;
+  padding: 0 14px;
+}
+.card {
+  background: #fff;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 18px;
+}
+h1, h2 {
+  margin: 8px 0 16px 0;
+  font-weight: 700;
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: var(--gap);
+}
+.field {
+  grid-column: span 12;
+}
+.field.half { grid-column: span 6; }
+.field.third { grid-column: span 4; }
+label {
+  font-size: 14px;
+  color: #111827;
+}
+input[type="text"],
+input[type="number"],
+input[type="date"],
+select,
+textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  outline: none;
+  font-size: 15px;
+  transition: border .15s ease;
+  background: #fff;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent);
+}
+.help {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.row {
+  display: flex;
+  gap: var(--gap);
+  flex-wrap: wrap;
+}
+.row > * { flex: 1; }
+.actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-start;
+  margin-top: 8px;
+}
+.btn {
+  border: 0;
+  border-radius: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-ghost { background: transparent; border: 1px solid #e5e7eb; color: #111827; }
+.toast {
+  position: fixed;
+  bottom: 18px;
+  right: 18px;
+  background: #111827;
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity .25s ease, transform .25s ease;
+  z-index: 9999;
+}
+.toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+.table-wrap {
+  overflow-x: auto;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 680px;
+}
+th, td {
+  text-align: right;
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  white-space: nowrap;
+}
+th {
+  font-size: 13px;
+  color: #334155;
+  background: #f8fafc;
+  position: sticky;
+  top: 0;
+}
+td.center { text-align: center; }
+.badge {
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  background: #eef2ff;
+  color: #3730a3;
+}
+@media (max-width: 640px) {
+  .field.half, .field.third { grid-column: span 12; }
+}
