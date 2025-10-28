@@ -1,4 +1,5 @@
 {% load static %}
+
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
@@ -6,33 +7,31 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <title>{% block title %}حسابداری{% endblock %}</title>
-  <link href="https://v1.fontapi.ir/css/Vazir" rel="stylesheet">
 
-  <link rel="stylesheet" href="{% static 'css/base.css' %}">
-  <link rel="stylesheet" href="{% static 'css/forms.css' %}">
-  <link rel="stylesheet" href="{% static 'css/badges.css' %}">
-  <link rel="stylesheet" href="{% static 'css/modal.css' %}">
-  <link rel="stylesheet" href="{% static 'css/navbar.css' %}">
-  <link rel="stylesheet" href="{% static 'css/reports.css' %}">
-  <link rel="stylesheet" href="{% static 'css/tables.css' %}">
+  <!-- فونت فارسی مدرن -->
+  <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
 
-  <script src="{% static 'js/numbers.js' %}"></script>
+  <!-- Bootstrap RTL فقط برای layout و ریسپانسیو -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
 
-  <!-- jQuery و Select2 از CDN -->
+  <!-- jQuery و Select2 -->
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
-  <style>
-    /* برای حذف چشمک اولیه */
-    .hide-until-ready{ visibility:hidden; }
-  </style>
+  <!-- استایل کلی پروژه - الان همه استایل‌ها بعداً در styles.css یکی می‌شن -->
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}">
 </head>
+
 <body>
+  <!-- Toast / اعلان‌ها -->
+  <div id="notify-container" class="notify-container" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- نوار بالایی سایت -->
   <nav class="navbar">
     <div class="navbar-brand">سیستم حسابداری شخصی</div>
 
-    <div class="hamburger">
+    <div class="hamburger" id="hamburger">
       <div></div>
       <div></div>
       <div></div>
@@ -44,7 +43,7 @@
       <a href="{% url 'register_receipt' %}">دریافت وجه</a>
       <a href="{% url 'register_payment' %}">پرداخت وجه</a>
       <a href="{% url 'items_list' %}">کالاها</a>
-      <a href="{% url 'register_party' %}">طرف حساب</a>
+      <a href="{% url 'parties_list' %}">طرف حساب‌ها</a>
       <a href="{% url 'transaction_list' %}">تراکنش‌ها</a>
       <a href="{% url 'customer_balance_report' %}">مشتریان</a>
       <a href="{% url 'monthly_sales' %}">📊 فروش ماهانه</a>
@@ -57,25 +56,56 @@
     </div>
   </nav>
 
+  <!-- محتوای صفحه -->
   <div id="page-root" class="main-container hide-until-ready">
     {% block content %}{% endblock %}
   </div>
 
-  {% include "ledger/partials/modals.html" %}
+  <!-- مودال‌های بازشونده -->
+  {% include "partials/modals.html" %}
 
+  <!-- جاوااسکریپت مخصوص هر صفحه (اگر صفحه block scripts داشته باشد) -->
   {% block scripts %}{% endblock %}
 
-  <!-- اسکریپت‌های سراسری که همیشه باید باشند -->
+  <!-- اسکریپت‌های سراسری پروژه -->
   <script src="{% static 'js/app.js' %}"></script>
   <script src="{% static 'js/modals.js' %}"></script>
+  <script src="{% static 'js/notify.js' %}"></script>
+  <script src="{% static 'js/numbers.js' %}"></script>
 
+  <!-- Bootstrap Bundle (dropdown ها و ... در موبایل) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- پیام‌های Django -->
+  {% if messages %}
   <script>
-    // وقتی صفحه آماده شد و اسکریپت‌های صفحه کارشان را کردند،
-    // خود اسکریپت صفحه باید این کلاس را بردارد. اگر فراموش شد، این fallback بعد از یک تیک می‌بردارد.
-    window.requestAnimationFrame(()=> {
-      const root = document.getElementById('page-root');
-      if(root) root.classList.remove('hide-until-ready');
+    window.addEventListener('DOMContentLoaded', function(){
+      {% for message in messages %}
+        if (window.notify) {
+          window.notify('{{ message.tags|default:"info" }}', "{{ message|escapejs }}");
+        }
+      {% endfor %}
     });
+  </script>
+  {% endif %}
+
+  <!-- کنترل منوی موبایل + حذف مخفی بودن صفحه بعد از لود -->
+  <script>
+    (function(){
+      const hamburger = document.getElementById('hamburger');
+      const menu = document.getElementById('menu');
+      if (hamburger && menu) {
+        hamburger.addEventListener('click', () => {
+          menu.classList.toggle('show');
+        });
+      }
+
+      // fallback برای برداشتن hide-until-ready
+      window.requestAnimationFrame(() => {
+        const root = document.getElementById('page-root');
+        if (root) root.classList.remove('hide-until-ready');
+      });
+    })();
   </script>
 </body>
 </html>

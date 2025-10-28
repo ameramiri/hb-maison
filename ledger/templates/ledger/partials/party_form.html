@@ -1,0 +1,8 @@
+<form id="party-create-form" method="post" action="{% url 'party_create' %}">
+  {% csrf_token %}
+  <div class="form-row">{{ form.name.label_tag }} {{ form.name }}</div>
+  <div class="form-row">{{ form.party_type.label_tag }} {{ form.party_type }}</div>
+  {{ form.is_customer }}
+  {{ form.is_supplier }}
+  <button type="submit" class="submit-btn">ثبت طرف حساب</button>
+</form>

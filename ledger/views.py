@@ -1,7 +1,8 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from .models import Item, Party, Transaction, Inventory, OP_SELL, OP_BUY, OP_USE, OP_RCV, OP_PAY, OP_CHOICES, PERSIAN_MONTHS
-from .forms import TransactionForm, ItemForm
+from django import forms
+from .forms import TransactionForm, PartyForm, ItemForm
 from django.urls import reverse
 from django.utils.http import urlencode
 from django.contrib import messages
@@ -14,12 +15,7 @@ import jdatetime
 from .services.stock import post_stock_tx
 from django.db.models.functions import Coalesce, Substr, Cast
 from persiantools.jdatetime import JalaliDate
-
-def fa_to_en(s):
-    return s.translate(str.maketrans('۰۱۲۳۴۵۶۷۸۹', '0123456789'))
-
-def en_to_fa(s):
-    return s.translate(str.maketrans('0123456789', '۰۱۲۳۴۵۶۷۸۹'))
+from .utils import toEn, ajax_debug_logger
 
 def _last_n_keep_ascending(qs, n):
     # آخرین n تا را می‌گیریم ولی برای نمایش صعودی می‌چینیم
@@ -154,6 +150,7 @@ def ajax_item_txs(request):
     })
 
 @login_required
+@ajax_debug_logger
 def register_transaction(request, op_type):
     items = Item.objects.all()
 
@@ -185,9 +182,11 @@ def register_transaction(request, op_type):
             form.fields['total_price'].required = False
 
         if form.is_valid():
+            request.dlog("✅ Form valid:", form.cleaned_data)
+
             # تبدیل تاریخ شمسی به میلادی
-            date_shamsi = form.cleaned_data['date_shamsi']
-            y, m, d = [int(x) for x in fa_to_en(date_shamsi).split('/')]
+            date_shamsi = request.POST.get('date_shamsi')
+            y, m, d = [int(x) for x in toEn(date_shamsi).split('/')]
             mi_date = jdatetime.date(y, m, d).togregorian()
 
             # تبدیل اعداد فارسی و حذف کاما
@@ -209,6 +208,7 @@ def register_transaction(request, op_type):
             party = form.cleaned_data['party']
             total_price = Decimal(str(parse_number(form.cleaned_data['total_price'])))
 
+            created = []
             if page_source in ("buy", "sell"):
                 item = form.cleaned_data['item']
 
@@ -231,7 +231,8 @@ def register_transaction(request, op_type):
                     payment_method="",
                     description=form.cleaned_data.get('description'),
                 )
-                messages.success(request, f'{OP_LABELS.get(op_type, op_type)} با موفقیت ثبت شد.')
+
+                created.append(op_type)
 
             if form.cleaned_data.get('payment_amount') > 0:
                 op_type2 = 'PAY' if page_source in ('buy', 'pay') else 'RCV'
@@ -247,20 +248,23 @@ def register_transaction(request, op_type):
                     payment_method=form.cleaned_data.get('payment_method'),
                     description=form.cleaned_data.get('description'),
                 )
-                messages.success(request, f'{OP_LABELS.get(op_type2, op_type2)} با موفقیت ثبت شد.')
+                created.append(op_type2)
 
-            if page_source == "buy":
-                return redirect('register_purchase')
-            elif page_source == "sell":
-                return redirect('register_sell')
-            elif page_source == "pay":
-                return redirect('register_payment')
-            elif page_source == "rcv":
-                return redirect('register_receipt')
+            request.dlog("✅ operations:", created)
+            return JsonResponse({
+                "success": True,
+                "operations": created
+            })
         else:
-            messages.error(request, form.errors)
+            request.dlog("❌ Form invalid:", form.errors)
+            return JsonResponse({ "success": False, "errors": form.errors })
     else:
         form = TransactionForm(op_type=op_type)
+
+    if op_type in [OP_RCV, OP_PAY]:
+        for fld in ["item", "qty", "unit_price", "total_price"]:
+            if fld in form.fields:
+                form.fields[fld].widget = forms.HiddenInput()
 
     recent_qs = Transaction.objects.order_by('-date_miladi')
     if op_type in (OP_SELL, OP_BUY):
@@ -314,7 +318,7 @@ def get_sell_price(request):
 
     return JsonResponse({'sell_price': sell_price, 'stock': stock, 'unit': unit, 'is_consignment': is_consignment})
 
-
+@login_required
 def items_list(request):
     q = (request.GET.get("q") or "").strip()
     exclude_zero = request.GET.get("exclude_zero") == "on"
@@ -340,7 +344,8 @@ def items_list(request):
         items = items.filter(name__icontains=q)
 
     if exclude_zero:
-        items = items.exclude(inventory__qty=0)
+        items = items.filter(Q(inventory__qty__isnull=False))  # رکورد موجودی داشته باشه
+        items = items.exclude(inventory__qty=0)                # ولی مقدارش صفر نباشه
 
     if only_consignment:
         items = items.filter(is_consignment=True)
@@ -360,186 +365,215 @@ def items_list(request):
         }
     )
 
+@login_required
 def item_create(request):
     if request.method == "POST":
         form = ItemForm(request.POST)
         if form.is_valid():
-            form.save()
+            item = form.save()
             items = Item.objects.all().order_by("name")
             return JsonResponse({
                 "success": True,
-                "table_html": render_to_string("ledger/partials/items_table.html", {"items": items}, request=request)
+                "table_html": render_to_string("ledger/partials/items_table.html", {"items": items}, request=request),
+                "new_option": {"value": item.id, "label": item.name}
             })
         else:
             return JsonResponse({
                 "success": False,
+                "errors": form.errors,
                 "form_html": render_to_string("ledger/partials/item_form.html", {"form": form}, request=request)
             })
     else:
         form = ItemForm()
         return render(request, "ledger/partials/item_form.html", {"form": form})
 
+@login_required
+def parties_list(request):
+    q = (request.GET.get("q") or "").strip()
+    include_customers = request.GET.get("include_customers") == "on"
+    include_suppliers = request.GET.get("include_suppliers") == "on"
+    exclude_zero = request.GET.get("exclude_zero") == "on"
 
+    parties = (
+        Party.objects.annotate(
+            total_sell=Sum(
+                Case(
+                    When(transactions__op_type=OP_SELL, then=F("transactions__total_price")),
+                    default=0, output_field=IntegerField(),
+                )
+            ),
+            total_rcv=Sum(
+                Case(
+                    When(transactions__op_type=OP_RCV, then=F("transactions__total_price")),
+                    default=0, output_field=IntegerField(),
+                )
+            ),
+            total_buy=Sum(
+                Case(
+                    When(transactions__op_type=OP_BUY, then=F("transactions__total_price")),
+                    default=0, output_field=IntegerField(),
+                )
+            ),
+            total_pay=Sum(
+                Case(
+                    When(transactions__op_type=OP_PAY, then=F("transactions__total_price")),
+                    default=0, output_field=IntegerField(),
+                )
+            ),
+        )
+        .annotate(
+            balance=ExpressionWrapper(
+                (F("total_sell") - F("total_rcv")) - (F("total_buy") - F("total_pay")),
+                output_field=IntegerField(),
+            )
+        ).order_by("name")
+    )
 
+    if q:
+        parties = parties.filter(name__icontains=q)
+
+    if include_customers:
+        parties = parties.filter(is_customer=True)
+
+    if include_suppliers:
+        parties = parties.filter(is_supplier=True)
+
+    if exclude_zero:
+        parties = parties.exclude(balance=0)
+
+    totals = parties.aggregate(
+        sum_balance=Coalesce(Sum("balance"), 0),
+    )
+
+    return render(request,
+        "ledger/parties_list.html",
+        {"parties": parties,
+         "totals": totals,
+         "q": q,
+         "include_customers": include_customers,
+         "include_suppliers": include_suppliers,
+         "exclude_zero": exclude_zero,
+        }
+    )
 
 @login_required
-def register_item(request):
-    if request.method == 'POST':
-        form = ItemForm(request.POST)
+def party_create(request):
+    context_type = request.GET.get("context") or request.POST.get("context")
+    if request.method == "POST":
+        post_data = request.POST.copy()
+
+        if not post_data.get('party_type') and context_type in ('customer', 'supplier'):
+            post_data['party_type'] = context_type
+
+        form = PartyForm(post_data, context_type=context_type)
+
         if form.is_valid():
-            cd = form.cleaned_data
-            it = Item.objects.create(
-                name=cd["name"],
-                unit=cd["unit"],
-                sell_price=cd["sell_price"],
-                group=cd["group"],
-                is_consignment=cd["is_consignment"],
-                commission_amount=cd["commission_amount"],
-                commission_percent=cd["commission_percent"],
-            )
-
-            # اطمینان از وجود موجودی (OneToOne)
-            Inventory.objects.get_or_create(item=it, defaults={'qty': Decimal('0')})
-
-            messages.success(request, 'کالا ثبت شد.')
-            return redirect('register_item')
+            party = form.save()
+            parties = Party.objects.all().order_by("name")
+            return JsonResponse({
+                "success": True,
+                "table_html": render_to_string("ledger/partials/parties_table.html", {"parties": parties}, request=request),
+                "new_option": {"value": party.id, "label": party.name}
+            })
         else:
-            messages.error(request, f'خطا در فرم: {form.errors}')
+            return JsonResponse({
+                "success": False,
+                "errors": form.errors,
+                "form_html": render_to_string("ledger/partials/party_form.html", {"form": form}, request=request)
+            })
     else:
-        form = ItemForm()
-
-    recent_items = Item.objects.select_related('inventory').order_by('-id')   #[:20]
-
-    return render(request, 'ledger/register_item.html', {
-        'form': form,
-        'recent_items': recent_items,
-    })
-
-@login_required
-def register_party(request):
-    if request.method == 'POST':
-        name = request.POST.get('name')
-
-        def _parse_role(value: str):
-            s = (value or "").strip().lower()
-            if s in ("supplier", "فروشنده"):
-                return False, True           # is_customer, is_supplier
-            if s in ("both", "هردو"):
-                return True, True
-            return True, False               # پیش‌فرض: مشتری
-
-        role_str = request.POST.get("role")
-        is_customer, is_supplier = _parse_role(role_str)
-
-        if name:
-            Party.objects.create(
-                name=name,
-                is_customer=is_customer,
-                is_supplier=is_supplier,
-            )
-            messages.success(request, "طرف حساب ثبت شد.")
-            return redirect('register_party')
-
-    # 🔧 این قسمت فیلتر سریع
-    role = request.GET.get("role")
-    qs = Party.objects.all()
-    if role == "cust":
-        qs = qs.filter(is_customer=True, is_supplier=False)
-    elif role == "supp":
-        qs = qs.filter(is_customer=False, is_supplier=True)
-    elif role == "both":
-        qs = qs.filter(is_customer=True, is_supplier=True)
-
-    recent_parties = qs.order_by('-id')[:20]
-
-    return render(request, 'ledger/register_party.html', {
-        'recent_parties': recent_parties
-    })
+        form = PartyForm(context_type=context_type)
+        return render(request, "ledger/partials/party_form.html", {"form": form})
 
 def normalize_jdate_str(s:str)->str:
     # رقم ها انگلیسی، جداکننده ها اسلاش
-    s = fa_to_en((s or '').strip().replace('-', '/'))
+    s = toEn((s or '').strip().replace('-', '/'))
     # حذف فاصله های اضافی
     s = '/'.join(part.strip() for part in s.split('/'))
     return s
 
 @login_required
 def transaction_list(request):
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return render(request, 'ledger/partials/tx_rows.html', {'transactions': qs})
+
     from .forms import TransactionFilterForm
     params = request.GET.copy()
     form = TransactionFilterForm(params or None)
 
-    # تاریخ ورودی (ممکن است خالی باشد)
-    raw_date = params.get('date_shamsi', '')
-    norm_date = normalize_jdate_str(raw_date)
-
-    # اگر کاربر دکمه روز قبل/بعد زد ولی تاریخ خالی بود، مبنا را امروز بگذار
-    if params.get('shift') and not norm_date:
-        norm_date = jdatetime.date.today().strftime('%Y/%m/%d')
-
-    # پردازش شیفت
-    shift = params.get('shift')
-    if shift and norm_date:
-        try:
-            y, m, d = [int(x) for x in norm_date.split('/')]
-            jdate = jdatetime.date(y, m, d) + timedelta(days=(-1 if shift == 'prev' else 1))
-            params['date_shamsi'] = en_to_fa(jdate.strftime('%Y/%m/%d'))
-            params.pop('shift', None)
-            return HttpResponseRedirect(reverse('transaction_list') + '?' + urlencode(params, doseq=True))
-        except Exception:
-            params.pop('shift', None)
-            return HttpResponseRedirect(reverse('transaction_list') + ('?' + urlencode(params, doseq=True) if params else ''))
-
-    # Query پایه
-    qs = Transaction.objects.select_related('item', 'party').order_by('date_miladi', 'id')
-
-    # اعمال فیلترهای دیگر
+    # --- فیلترها ---
+    qs = Transaction.objects.select_related('item', 'party')
     if form.is_valid():
-        op_type = form.cleaned_data.get('op_type') or ''
-        party   = form.cleaned_data.get('party') or ''
-        item    = form.cleaned_data.get('item') or ''
-        qty     = form.cleaned_data.get('qty') or 0
+        op_type     = form.cleaned_data.get('op_type') or ''
+        party       = form.cleaned_data.get('party') or ''
+        item        = form.cleaned_data.get('item') or ''
+        qty         = toEn(form.cleaned_data.get('qty'), True)
+        unit_price  = toEn(form.cleaned_data.get('unit_price'), True)
+        total_price = toEn(form.cleaned_data.get('total_price'), True)
+        cogs        = toEn(form.cleaned_data.get('cogs'), True)
+        description = form.cleaned_data.get('description') or ''
 
-        if op_type: qs = qs.filter(op_type=op_type)
-        if item:    qs = qs.filter(item=item)
-        if party:   qs = qs.filter(party=party)
-        if qty > 0: qs = qs.filter(qty=qty)
+        if op_type:     qs = qs.filter(op_type=op_type)
+        if item:        qs = qs.filter(item=item)
+        if party:       qs = qs.filter(party=party)
+        if qty is not None:         qs = qs.filter(qty=qty)
+        if unit_price is not None:  qs = qs.filter(unit_price=unit_price)
+        if total_price is not None: qs = qs.filter(total_price=total_price)
+        if cogs is not None:        qs = qs.filter(cogs=cogs)
+        if description: qs = qs.filter(description__icontains=description)
 
-    if norm_date:
-        try:
-            y, m, d = [int(x) for x in norm_date.split('/')]
-            mi_date = jdatetime.date(y, m, d).togregorian()
-            qs = qs.filter(date_miladi=mi_date)
-        except Exception:
-            # اگر تاریخ خراب بود، فیلتر تاریخ را نادیده بگیر (تا حداقل خروجی ببینی)
-            pass
+        day   = toEn(form.cleaned_data.get('day_input'))
+        month = toEn(form.cleaned_data.get('month_input'))
+        year  = toEn(form.cleaned_data.get('year_input'))
 
-    # 🔹 آخرین id یا offset
+        # 🧠 فیلتر ترکیبی تاریخ
+        if year or month or day:
+            # ساخت regex دینامیک
+            pattern = '^'
+            if year:
+                pattern += str(year).zfill(4)
+            else:
+                pattern += r'\d{4}'  # هر سالی
+
+            if month:
+                pattern += '/' + str(month).zfill(2)
+            else:
+                pattern += r'/\d{2}'  # هر ماهی
+
+            if day:
+                pattern += '/' + str(day).zfill(2)
+            else:
+                pattern += r'/\d{2}'  # هر روزی
+
+            qs = qs.filter(date_shamsi__regex=pattern)
+
+    # --- Infinite scroll ---
     last_id = request.GET.get('last_id')
     limit = 50
 
     if last_id:
-        # وقتی اسکرول بالا رفت → رکوردهای قدیمی‌تر از last_id
+        # رکوردهای قدیمی‌تر از آخرین ردیف فعلی
         qs = qs.filter(id__lt=last_id).order_by('-date_miladi', '-id')[:limit]
     else:
-        # بار اول → آخرین ۵۰ رکورد
+        # بار اول → جدیدترین‌ها
         qs = qs.order_by('-date_miladi', '-id')[:limit]
 
-    # 🔹 مرتب‌سازی نهایی صعودی برای نمایش
-    txs = list(qs)[::-1]
+    txs = list(qs)
+    last_id = txs[-1].id if txs else None
 
     if request.headers.get("x-requested-with") == "XMLHttpRequest":
         html = render_to_string("ledger/partials/tx_rows.html", {"transactions": txs, "page_source": "ALL"}, request=request)
         return JsonResponse({
             "html": html,
-            "last_id": txs[0].id if txs else None,   # قدیمی‌ترین رکوردی که لود شده
-            "has_more": len(txs) == limit,           # اگه کمتر از limit بود یعنی دیگه تموم شد
+            "last_id": txs[-1].id if txs else None,   # قدیمی‌ترین در مجموعه فعلی
+            "has_more": len(txs) == limit,
         })
 
     return render(request, "ledger/transaction_list.html", {
         "transactions": txs,
-        "page_source": "ALL",
         "form": form,
+        "transactions_last_id": last_id,
+        "page_source": "ALL",
     })
 
 @login_required
@@ -644,19 +678,23 @@ def get_item_transactions(request):
 
 @login_required
 def get_recent_transactions(request):
-    limit = 50
     op_type = request.GET.get("op_type")
     last_id = request.GET.get("last_id")
 
-    qs = Transaction.objects.select_related("item", "party").order_by("-date_miladi", "-id")
+    limit = int(request.GET.get("limit", 50))
+    qs = Transaction.objects.select_related("item", "party")
 
     if op_type:
-        qs = qs.filter(op_type=op_type)
+        if op_type == OP_SELL:
+            qs = qs.filter(Q(op_type=OP_SELL) | Q(op_type=OP_USE))
+        else:
+            qs = qs.filter(op_type=op_type)
 
     if last_id:
         qs = qs.filter(id__lt=last_id)
 
-    qs = qs[:limit]
+    qs = qs.order_by("-date_miladi", "-id")[:limit]
+
     txs = list(qs)  # ترتیب نزولی (جدیدترین → قدیمی‌تر)
 
     if not txs:
@@ -668,8 +706,7 @@ def get_recent_transactions(request):
             page_source = "PAYRCV"
 
         html = render_to_string("ledger/partials/tx_rows.html", {"transactions": txs, "page_source": page_source}, request=request)
-        html += f'<input type="hidden" class="last-id" value="{txs[-1].id}" data-hasmore="{str(len(txs)==limit).lower()}">'
-
+        html += f'<input type="hidden" class="last-id" value="{txs[-1].id}" data-hasmore="false">'
     return HttpResponse(html, content_type="text/html; charset=utf-8")
 
 def customer_balance_report(request):
@@ -771,7 +808,7 @@ def monthly_sales(request):
             profit=F("total_sales") - F("total_cogs"),
             profit_percent=ExpressionWrapper(100.0 * F("profit") / F("total_sales"), output_field=FloatField(),)
         )
-        .order_by("year", "month")
+        .order_by("-year", "-month")
     )
 
     sum_sales = sum_profit = sum_days = max_sales = 0

@@ -1,0 +1,85 @@
+<!-- مودال ایجاد طرف حساب -->
+<div id="party-create-modal" class="modal-overlay">
+  <div class="modal-content modal-sm">
+    <div class="modal-header" style="margin-right:8px;">
+      <h3 id="party-create-modal-title">طرف حساب جدید</h3>
+      <button type="button" id="party-create-modal-close">×</button>
+    </div>
+    <div class="modal-body"></div>
+  </div>
+</div>
+
+<!-- مودال ایجاد کالا -->
+<div id="item-create-modal" class="modal-overlay">
+  <div class="modal-content modal-sm">
+    <div class="modal-header" style="margin-right:8px;">
+      <h3 id="item-create-modal-title">کالای جدید</h3>
+      <button type="button" id="item-create-modal-close">×</button>
+    </div>
+    <div class="modal-body"></div>
+  </div>
+</div>
+
+<!-- مودال لیست طرف حساب -->
+<div id="party-modal" class="modal-overlay">
+  <div class="modal-content modal-lg">
+    <div class="modal-header">
+      <h3 id="party-modal-title">تراکنش‌های طرف حساب</h3>
+      <button type="button" id="party-modal-close">×</button>
+    </div>
+    <div class="modal-body">
+      <!-- فیلتر -->
+      <label style="display:flex; align-items:center; gap:4px; margin-bottom:10px; cursor:pointer;">
+        <input type="checkbox" id="filter-from-last-settlement" style="cursor:pointer;">
+        فقط از آخرین تسویه
+      </label>
+
+      <div id="party-modal-scroll" class="table-wrap" style="max-height:400px; overflow-y:auto;">
+        <table class="table-pro tx-last">
+          <thead>
+            <tr>
+              <th>تاریخ</th>
+              <th>عملیات</th>
+              <th>کالا</th>
+              <th>تعداد</th>
+              <th>مبلغ</th>
+              <th>مانده حساب</th>
+            </tr>
+          </thead>
+          <tbody id="party-modal-rows">
+            <tr><td colspan="6" class="text-center">در حال بارگذاری...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- مودال لیست کالا -->
+<div id="item-modal" class="modal-overlay">
+  <div class="modal-content modal-lg">
+    <div class="modal-header" style="margin-right:12px;">
+      <h3 id="item-modal-title">تراکنش‌های کالا</h3>
+      <button type="button" id="item-modal-close">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="item-modal-scroll" class="table-wrap" style="max-height:400px; overflow-y:auto;">
+        <table class="table-pro tx-last">
+          <thead>
+            <tr>
+              <th>تاریخ</th>
+              <th>عملیات</th>
+              <th>طرف حساب</th>
+              <th>تعداد</th>
+              <th>موجودی</th>
+              <th>مبلغ</th>
+            </tr>
+          </thead>
+          <tbody id="item-modal-rows">
+            <tr><td colspan="6" class="text-center">در حال بارگذاری...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

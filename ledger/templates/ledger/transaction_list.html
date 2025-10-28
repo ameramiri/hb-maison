@@ -8,52 +8,104 @@
 <h2>لیست تراکنش‌ها</h2>
 
 <style>
-    .filter-form #id_date_shamsi { width:90px; height:15px; }
-    .filter-form button[name="shift"] {height: 25px; min-width: 25px; padding: 0 6px; line-height: 1; font-size: 12px; }
+  .filters-row input,
+  .filters-row select {
+    font-size: 13px;
+    width: 100%;
+    height: 24px;
+    box-sizing: border-box;
+    padding: 2px 4px;
+  }
+
+  .date-filter-fields {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 1px 4px;
+    gap: 0px;
+  }
+
+  .date-filter-fields:focus-within {
+    border-color: #000000;
+    border-width: 2px;
+    padding: 0 3px;
+  }
+
+  .date-filter-fields input {
+    width: 25px;
+    height: 24px;
+    text-align: center;
+    font-size: 13px;
+    border: none;
+    outline: none;
+    background: transparent;
+    direction: ltr;
+  }
+
+  .date-filter-fields input#id_year_input {
+    width: 33px;
+  }
+
+  .date-filter-fields span {
+    color: #999;
+    font-weight: bold;
+    user-select: none;
+    font-size: 13px;
+  }
+
+  /* برای جلوگیری از تغییر سایز با zoom */
+  .date-filter-fields input::-webkit-outer-spin-button,
+  .date-filter-fields input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
 </style>
 
-<form method="get" class="filter-form" style="display:flex; gap:12px; align-items:flex-end; margin-bottom:12px; flex-wrap:wrap;">
-  <div>
-    {{ form.op_type.label_tag }}
-    {{ form.op_type }}
-  </div>
-  <div>
-    {{ form.item.label_tag }}
-    {{ form.item }}
-  </div>
-  <div>
-    {{ form.party.label_tag }}
-    {{ form.party }}
-  </div>
-  <div>
-    <div style="display:flex; align-items:center; gap:6px;">
-      <button type="submit" name="shift" value="prev" title="روز قبل" style="padding:4px 8px;">‹</button>
-      {{ form.date_shamsi }}
-      <button type="submit" name="shift" value="next" title="روز بعد" style="padding:4px 8px;">›</button>
-    </div>
+<form method="get" id="filters-in-header">
+  <div id="scroll-box" class="table-wrap" style="height:500px; overflow-y:auto;">
+    <table class="table-pro">
+      <thead>
+        <tr>
+          <th>تاریخ</th>
+          <th>نوع عملیات</th>
+          <th>طرف حساب</th>
+          <th>کالا</th>
+          <th>تعداد</th>
+          <th>قیمت واحد</th>
+          <th>مبلغ کل</th>
+          <th>قیمت تمام شده</th>
+          <th>توضیحات</th>
+        </tr>
+
+        <!-- 🔽 سطر فیلتر -->
+        <tr class="filters-row">
+          <th>
+            <div class="date-filter-fields">
+              {{ form.day_input }}/
+              {{ form.month_input }}/
+              {{ form.year_input }}
+            </div>
+          </th>
+          <th>{{ form.op_type }}</th>
+          <th>{{ form.party }}</th>
+          <th>{{ form.item }}</th>
+          <th>{{ form.qty }}</th>
+          <th>{{ form.unit_price }}</th>
+          <th>{{ form.total_price }}</th>
+          <th>{{ form.cogs }}</th>
+          <th>{{ form.description }}</th>
+        </tr>
+      </thead>
+      <tbody id="tx-body" data-last-id="{{ transactions_last_id }}">
+        {% include "ledger/partials/tx_rows.html" with transactions=transactions %}
+      </tbody>
+    </table>
   </div>
 </form>
-
-<div id="scroll-box" class="table-wrap" style="height:500px; overflow-y:auto;">
-  <table class="table-pro">
-    <thead>
-      <tr>
-        <th>تاریخ</th>
-        <th>نوع عملیات</th>
-        <th>طرف حساب</th>
-        <th>کالا</th>
-        <th>تعداد</th>
-        <th>قیمت واحد</th>
-        <th>مبلغ کل</th>
-        <th>قیمت تمام شده</th>
-        <th>توضیحات</th>
-      </tr>
-    </thead>
-    <tbody id="tx-body" data-last-id="{{ transactions.0.id }}">
-      {% include "ledger/partials/tx_rows.html" with transactions=transactions %}
-    </tbody>
-  </table>
-</div>
 
 <input type="hidden" id="prev-page" value="{{ previous_page|default:'' }}">
 
@@ -63,7 +115,6 @@
 <script src="{% static 'js/modals.js' %}"></script>
 
 <script>
-window.PAGE_SOURCE = "{{ page_source|default:'list' }}";
 
 document.addEventListener('DOMContentLoaded', function(){
   // --- Select2 ---
@@ -76,38 +127,31 @@ document.addEventListener('DOMContentLoaded', function(){
       }
     });
 
-    if ($('#id_op_type').data('select2')) $('#id_op_type').select2('destroy');
-    if ($('#id_item').data('select2'))  $('#id_item').select2('destroy');
-    if ($('#id_party').data('select2')) $('#id_party').select2('destroy');
-
-    $('#id_op_type').select2({ width:'100px', dir:'rtl', minimumResultsForSearch: Infinity });
-    $('#id_item').select2({  width:'172px', dir:'rtl' });
-    $('#id_party').select2({ width:'172px', dir:'rtl' });
+    $('#id_op_type').select2({ width:'100px', dir:'rtl', minimumResultsForSearch: Infinity }).on('select2:select select2:clear', () => form.requestSubmit());    
+    $('#id_item'   ).select2({ width:'172px', dir:'rtl' }).on('select2:select select2:clear', () => form.requestSubmit());
+    $('#id_party'  ).select2({ width:'172px', dir:'rtl' }).on('select2:select select2:clear', () => form.requestSubmit());
   }
 
   // --- فرم فیلتر ---
-  const form = document.querySelector('.filter-form');
+  const form = document.querySelector('#filters-in-header');
   if (form) {
     const autoSubmit = (() => {
       let t = null;
       return (delay = 120) => { clearTimeout(t); t = setTimeout(() => form.requestSubmit(), delay); };
     })();
 
-    const hookChange = (sel) => {
-      if (!sel) return;
-      sel.addEventListener('change', () => autoSubmit());
-      if (window.jQuery && jQuery(sel).data('select2')) {
-        jQuery(sel).on('select2:select select2:clear', () => autoSubmit());
-      }
-    };
+    const ids = ['id_op_type', 'id_item', 'id_party', 'id_day_input', 'id_month_input', 'id_year_input'];
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
 
-    hookChange(document.getElementById('id_op_type'));
-    hookChange(document.getElementById('id_item'));
-    hookChange(document.getElementById('id_party'));
+      // برای selectها → select2 event
+      if (window.jQuery && jQuery(el).data('select2')) {
+        jQuery(el).on('select2:select select2:clear', () => autoSubmit(0));
+      }
+    });
 
     const dateInput = document.getElementById('id_date_shamsi');
-    const toFa = s => String(s||'').replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
-    const toEn = s => String(s||'').replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
     const isFullDate = s => /^\d{4}\/\d{2}\/\d{2}$/.test(s);
 
     if (dateInput) {
@@ -120,7 +164,36 @@ document.addEventListener('DOMContentLoaded', function(){
       dateInput.addEventListener('change', () => autoSubmit(0));
       dateInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); autoSubmit(0); }});
     }
+
+    // --- ارسال فرم با Enter ---
+    form.querySelectorAll('input, select').forEach(el => {
+      el.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          localStorage.setItem('lastFocusedField', el.id);
+          autoSubmit(0);
+        }
+      });
+    });
+
+    // --- بازگرداندن فوکوس پس از reload ---
+    const lastFocused = localStorage.getItem('lastFocusedField');
+    if (lastFocused) {
+      const field = document.getElementById(lastFocused);
+      if (field) {
+        setTimeout(() => field.focus(), 200);
+      }
+      localStorage.removeItem('lastFocusedField');
+    }
   }
+
+  const dayInput   = setupNumericField('id_day_input', 0);
+  const monthInput = setupNumericField('id_month_input', 0);
+  const yearInput  = setupNumericField('id_year_input', 0);
+  const qty        = setupNumericField('id_qty', 0);
+  const unitPrice  = setupNumericField('id_unit_price', 0);
+  const totalPrice = setupNumericField('id_total_price', 0);
+  const cogs       = setupNumericField('id_cogs', 0);
 
   // --- Infinite scroll ---
   const box = document.getElementById("scroll-box");
@@ -128,24 +201,18 @@ document.addEventListener('DOMContentLoaded', function(){
   let loading = false;
   let lastId = body.dataset.lastId;
 
-  setTimeout(() => { box.scrollTop = box.scrollHeight; }, 50);
-
   box.addEventListener("scroll", async function() {
-    if (box.scrollTop === 0 && !loading && lastId) {
+    const nearBottom = box.scrollTop + box.clientHeight >= box.scrollHeight - 10;
+    if (nearBottom && !loading && lastId) {
       loading = true;
       try {
         const url = new URL(window.location.href);
         url.searchParams.set("last_id", lastId);
 
-        const res = await fetch(url.toString(), {
-          headers: { "X-Requested-With": "XMLHttpRequest" }
-        });
+        const res = await fetch(url.toString(), { headers: { "X-Requested-With": "XMLHttpRequest" } });
         const data = await res.json();
 
-        const oldHeight = box.scrollHeight;
-        body.insertAdjacentHTML("afterbegin", data.html);
-        box.scrollTop = box.scrollHeight - oldHeight;
-
+        body.insertAdjacentHTML("beforeend", data.html); // 👈 اضافه به پایین
         lastId = data.last_id;
         if (!data.has_more) lastId = null;
       } catch (err) {

@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% load format_filters %}
+
+{% block title %}مدیریت طرف حساب‌ها{% endblock %}
+
+{% block content %}
+  <h2>مدیریت طرف حساب‌ها</h2>
+
+  <style>
+    .icon-btn{ border:1px solid #d0d5dd; background:#f9fafb; border-radius:8px; padding:6px 8px; cursor:pointer; }
+    .icon-btn:hover{ background:#eef2f7; }
+    /* رفع مشکل نمایش منوی select2 روی مودال */
+    .select2-container--open { z-index: 3000 !important; }
+    .select2-dropdown { z-index: 3050 !important; }
+  </style>
+
+<form method="get" class="filter-form"
+      style="display:flex; flex-wrap:wrap; gap:0.25rem; align-items:center;">
+  <div style="display:flex; flex-direction:row; align-items:center; gap:.5rem; margin-bottom:0;">
+    <input type="text" name="q" value="{{ q }}"
+      placeholder="جستجو در نام طرف حساب…"
+      style="padding:.4rem .6rem; width:200px;"
+      onkeydown="if(event.key==='Enter'){ this.form.submit(); }">
+  <button type="button" class="btn-add-party icon-btn"
+          data-url="/party/create/"
+          data-table="party-table-wrap" 
+          data-success="طرف حساب با موفقیت اضافه شد">➕</button>
+  </div>
+
+  <div style="flex-basis:100%;"></div>
+
+<!-- ظرف کلی با دو ستون -->
+<div style="display:grid; grid-template-columns:auto auto; gap:1rem; align-items:center;">
+
+  <!-- خط اول، ستون ۱ -->
+  <label style="display:inline-flex; align-items:center; gap:.35rem; cursor:pointer;">
+    <input id="include_customers" type="checkbox" name="include_customers"
+           {% if include_customers %}checked{% endif %}
+           style="margin:0; width:16px; height:16px; cursor:pointer;"
+           onchange="this.form.submit();">
+    مشتریان
+  </label>
+
+  <!-- خط اول، ستون ۲ -->
+  <label style="display:inline-flex; align-items:center; gap:.35rem; cursor:pointer;">
+    <input id="include_suppliers" type="checkbox" name="include_suppliers"
+           {% if include_suppliers %}checked{% endif %}
+           style="margin:0; width:16px; height:16px; cursor:pointer;"
+           onchange="this.form.submit();">
+    فروشندگان
+  </label>
+
+  <!-- خط دوم، ستون ۱ -->
+  <label style="display:inline-flex; align-items:center; gap:.35rem; cursor:pointer;">
+    <input id="exclude_zero" type="checkbox" name="exclude_zero"
+           {% if exclude_zero %}checked{% endif %}
+           style="margin:0; width:16px; height:16px; cursor:pointer;"
+           onchange="this.form.submit();">
+    فقط مانده حساب دارها
+  </label>
+
+  <!-- خط دوم، ستون 2 -->
+  <div class="totals-bar-single">
+    <span class="label"><strong>جمع مانده حساب:</strong></span>
+    <span class="value" dir="ltr">{{ totals.sum_balance|fa_thousand }}</span>
+  </div>
+
+</div>
+
+</form>
+
+  <!-- لیست طرف حساب‌ها -->
+  <div id="party-table-wrap" style="margin-top:16px;">
+    {% include "ledger/partials/parties_table.html" with parties=parties %}
+  </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener("DOMContentLoaded", function(){
+    const q = document.querySelector("input[name='q']");
+    if(q) { setTimeout(() => q.focus(), 100); }
+  });
+</script>
+{% endblock %}

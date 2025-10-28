@@ -39,6 +39,17 @@ input, select, textarea {
   border-radius: 6px;
 }
 
+.modal select {
+  width: 270px;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background-color: #fff;
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+
 /* -------------------
    تنظیمات Select2
 -------------------- */

@@ -105,7 +105,7 @@ class Transaction(models.Model):
 
     @property
     def is_purchase_tx(self) -> bool:
-        return self.op_type in (OP_BUY)
+        return self.op_type == OP_BUY
 
     # کلاس بجِ نمایشی براساس نوع عملیات (برای رنگ/استایل)
     @property
@@ -139,8 +139,8 @@ class PartyManager(models.Manager):
 class Party(models.Model):
     name = models.CharField(max_length=50)
     # ✅ دو بولین به‌جای role:
-    is_customer = models.BooleanField(default=False, verbose_name="مشتری")   # ← جدید
-    is_supplier = models.BooleanField(default=False, verbose_name="فروشنده") # ← جدید
+    is_customer = models.BooleanField(default=False)
+    is_supplier = models.BooleanField(default=False)
 
     objects = PartyManager()
 
@@ -150,26 +150,9 @@ class Party(models.Model):
         indexes = [
             models.Index(fields=["name"]),
         ]
-        # ✅ حداقل یکی از نقش‌ها باید True باشد
-        constraints = [
-            models.CheckConstraint(
-                check=Q(is_customer=True) | Q(is_supplier=True),
-                name="party_at_least_one_role"
-            )
-        ]
-
+ 
     def __str__(self):
         return self.name
-
-    @property
-    def role_display(self):
-        if self.is_customer and self.is_supplier:
-            return "هردو"
-        if self.is_customer:
-            return "مشتری"
-        if self.is_supplier:
-            return "فروشنده"
-        return "—"  # نباید رخ بدهد چون کانسترینت داریم
 
 class ItemGroup(models.TextChoices):
     FORMAL    = "formal",    "لباس مجلسی"

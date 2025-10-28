@@ -9,10 +9,10 @@ function toEn(s){
 }
 
 // تبدیل به فارسی با جداکننده سه‌رقمی
-function fa(n, decimals=0){
+function fa(n, decimals=0, useGrouping=true){
   try {
     const num = Number(n);
-    const opts = { useGrouping: true };
+    const opts = { useGrouping };
     if (decimals > 0){
       opts.minimumFractionDigits = decimals;
       opts.maximumFractionDigits = decimals;
@@ -43,75 +43,131 @@ function num(el){
 }
 
 // کنترل ورودی عددی و اعشار
-function allowNumericInput(el, decimals=0){
-  if (!el) return;
-  el.addEventListener('input', function(){
-    let raw = toEn(el.value);
+function attachNumericBehavior(el, {decimals, maxIntLen, useGrouping, callback}) {
 
-    // فقط ارقام و نقطه
+  // این فانکشن خام رو normalize می‌کنه: فقط ارقام و یک نقطه، و بعد محدودیت‌ها رو اعمال می‌کنه
+  function normalizeRawInput(raw){
+    // به انگلیسی تمیز
+    raw = toEn(raw);
+
+    // فقط ارقام و یک نقطه
     raw = raw.replace(/[^0-9.]/g, '');
+    const firstDot = raw.indexOf('.');
+    if (firstDot !== -1){
+      raw = raw.slice(0, firstDot + 1) + raw.slice(firstDot + 1).replace(/\./g, '');
+    }
+
+    // جدا کن بخش صحیح و اعشار
+    let [intPart = '', fracPart = undefined] = raw.split('.');
+
+    // محدودیت طول فقط روی بخش صحیح
+    if (maxIntLen && intPart.length > maxIntLen){
+        intPart = intPart.slice(0, maxIntLen);
+    }
+
+    // اگر اعشار نداریم یا decimals=0، اصلا بخش اعشار رو حذف کن
+    if (decimals === 0){
+      return intPart;
+    }
+
+    // در غیر این صورت، اعشار مجاز است:
+    if (fracPart === undefined){
+      // یعنی هنوز نقطه نزده یا پاک شده
+      return intPart;
+    }
+
+    // اگر کاربر فقط "12." زده و هنوز چیزی بعدش نیست
+    if (fracPart === '' && raw.endsWith('.')){
+      return intPart + '.';
+    }
+
+    // بریدن تعداد ارقام اعشاری
+    fracPart = fracPart.slice(0, decimals);
+
+    return fracPart === ''
+      ? (intPart + '.')        // 12.
+      : (intPart + '.' + fracPart); // 12.34
+  }
+
+  // این فانکشن مقدار نرمال‌شده رو به حالت نمایش (فارسی+گروه‌بندی) درمیاره
+  function formatForDisplay(rawNormalized){
+    if (rawNormalized === ''){
+      return '';
+    }
+
+    const hasDot = rawNormalized.includes('.');
+    let [intPart, fracPart] = rawNormalized.split('.');
+
+    // عدد صحیح رو به فارسی با یا بدون جداکننده نمایش بده
+    const intFa = fa(intPart === '' ? 0 : intPart, 0, useGrouping);
 
     if (decimals === 0){
-      raw = raw.replace(/\./g, ''); // اگر اعشار مجاز نیست نقطه حذف بشه
-    } else {
-      // فقط یک نقطه مجاز
-      const firstDot = raw.indexOf('.');
-      if (firstDot !== -1){
-        raw = raw.slice(0, firstDot + 1) + raw.slice(firstDot + 1).replace(/\./g, '');
-      }
-
-      // محدود کردن رقم اعشار
-      const parts = raw.split('.');
-      if (parts[1]){
-        parts[1] = parts[1].slice(0, decimals);
-        raw = parts.join('.');
-      }
+      return intFa;
     }
-    el.value = raw;
-  });
-}
 
-// فرمت‌دهی خودکار (سه‌رقمی + اعشار)
-function formatOnInput(el, decimals=0, callback){
-  if (!el) return;
-  el.addEventListener('input', ()=>{
-    let raw = toEn(el.value);
-
-    if (raw === '.' && decimals > 0){
-      el.value = '۰٫'; // اولین نقطه
-    } else if (raw.endsWith('.') && decimals > 0){
-      const intPart = raw.slice(0, -1);
-      el.value = (intPart ? fa(intPart, 0) : '۰') + '٫';
-    } else if (raw !== '' && !isNaN(raw)){
-      const parts = raw.split('.');
-      if (parts.length === 2 && decimals > 0){
-        const persian = parts[1].replace(/\d/g, d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
-        el.value = fa(parts[0], 0) + '٫' + persian;
-      } else {
-        el.value = fa(raw, 0);
-      }
-    } else {
-      el.value = '';
+    // اگر هنوز فقط "12." هست
+    if (hasDot && (fracPart === undefined || fracPart === '')){
+      return intFa + '٫';
     }
+
+    // اگر اعشار داریم
+    if (fracPart !== undefined){
+      // رقم‌های اعشار رو به فارسی تبدیل کن
+      const fracFa = fracPart.replace(/\d/g, d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
+      return intFa + '٫' + fracFa;
+    }
+
+    return intFa;
+  }
+
+  // وقتی کاربر تایپ می‌کند
+  el.addEventListener('input', () => {
+    const normalized = normalizeRawInput(el.value);
+    el.value = formatForDisplay(normalized);
     callback?.();
   });
-  el.addEventListener('change', callback);
 
-  // موقع blur → فرمت نهایی
-  el.addEventListener('blur', ()=>{
-    const val = toEn(el.value);
-    if (val !== '' && !isNaN(val)){
-      const numVal = parseFloat(val);
-      el.value = fa(numVal, decimals);
+  // وقتی فوکوس از فیلد بیرون می‌رود → خروجی نهایی تمیز
+  el.addEventListener('blur', () => {
+    const normalized = normalizeRawInput(el.value);
+    if (normalized === '') {
+      el.value = '';
+      return;
     }
+
+    // اینجا می‌تونیم عدد نهایی رو با تعداد اعشار ثابت کنیم
+    let numVal = parseFloat(normalized); // مثلا "123.4" → 123.4
+
+    if (!isNaN(numVal)){
+      el.value = fa(numVal, decimals, useGrouping);
+    }
+
+    callback?.();
+  });
+
+  // اگر به هر دلیلی بخوایم روی change هم تریگر داشته باشیم:
+  el.addEventListener('change', () => {
+    callback?.();
   });
 }
 
 // راه‌اندازی فیلد عددی
-function setupNumericField(id, decimals=0, callback){
+function setupNumericField(id, decimals = 0, callback){
   const el = document.getElementById(id);
   if (!el) return null;
-  allowNumericInput(el, decimals);
-  formatOnInput(el, decimals, callback);
+
+  const maxIntLen = Number(el.dataset.maxint || '') || null;
+  const decs = decimals !== null ? decimals : (Number(el.dataset.decimals || '') || 0);
+
+  // اگر طول بخش صحیح کوتاهه (مثلاً سال، درصد، تعداد کم)، جداکننده هزارگان نذار
+  const useGrouping = !maxIntLen || maxIntLen > 4;
+
+  attachNumericBehavior(el, {
+    decimals: decs,
+    maxIntLen,
+    useGrouping,
+    callback
+  });
+
   return el;
 }

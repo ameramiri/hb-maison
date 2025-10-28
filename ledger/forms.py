@@ -2,6 +2,7 @@ from decimal import Decimal, InvalidOperation
 from django import forms
 from .models import Item, Party, PaymentMethod, OpType, OP_SELL, OP_BUY, OP_RCV, OP_PAY, OP_USE, ItemGroup
 import jdatetime
+from .utils import toFa
 
 _digit_map = str.maketrans({
     "۰":"0","۱":"1","۲":"2","۳":"3","۴":"4","۵":"5","۶":"6","۷":"7","۸":"8","۹":"9",
@@ -40,7 +41,6 @@ class TransactionForm(forms.Form):
         widget=forms.TextInput(attrs={
             "id": "id_date_shamsi",
             "type": "hidden",
-            "style": "width:85px;",
         })
     )
     date_shamsi_display = forms.CharField(
@@ -49,7 +49,7 @@ class TransactionForm(forms.Form):
         widget=forms.TextInput(attrs={
             "id": "id_date_shamsi_display",
             "placeholder": "مثلاً ۱۴۰۴/۰۵/۲۰",
-            "style": "width:85px;",
+            "class": "field-sm",
         })
     )
 
@@ -59,7 +59,7 @@ class TransactionForm(forms.Form):
         required=False,
         widget=forms.CheckboxInput(attrs={
             "id": "giftuse",
-            "style": "cursor:pointer;"
+            "style": "cursor:pointer;",
         })
     )
 
@@ -68,10 +68,9 @@ class TransactionForm(forms.Form):
         queryset=Party.objects.none(),
         label="طرف حساب",
         widget=forms.Select(attrs={
-            "class": "select2",
+            "class": "select2 field-md",
             "id": "party",
             "required": "required",
-            "style": "width:205px;",
         })
     )
 
@@ -80,10 +79,9 @@ class TransactionForm(forms.Form):
         queryset=Item.objects.none(),
         label="کالا",
         widget=forms.Select(attrs={
-            "class": "select2",
+            "class": "select2 field-md",
             "id": "item",
             "required": "required",
-            "style": "width:205px;",
         })
     )
 
@@ -94,7 +92,8 @@ class TransactionForm(forms.Form):
         widget=forms.TextInput(attrs={
             "id": "qty",
             "placeholder": "تعداد",
-            "style": "width: 85px; display:inline-block;"
+            "class": "field-sm",
+            "data-maxint": "4", "inputmode": "numeric"
         })
     )
 
@@ -105,7 +104,8 @@ class TransactionForm(forms.Form):
         widget=forms.TextInput(attrs={
             "id": "unit_price",
             "placeholder": "قیمت واحد",
-            "style": "width:85px; display:inline-block;"
+            "class": "field-sm",
+            "inputmode": "numeric"
         })
     )
 
@@ -116,11 +116,12 @@ class TransactionForm(forms.Form):
         widget=forms.TextInput(attrs={
             "id": "total_price",
             "placeholder": "قیمت کل",
-            "style": "width:215px; display:inline-block;"
+            "class": "field-lg",
+            "inputmode": "numeric"
         })
     )
 
-    # روش پرداخت
+    # مبلغ پرداخت
     payment_amount = forms.CharField(
         label="پرداخت",
         required=False,
@@ -128,10 +129,12 @@ class TransactionForm(forms.Form):
             "class": "digit-input",
             "id": "payment_amount",
             "placeholder": "مبلغ",
-            "style": "width:85px;",
+            "class": "field-sm",
+            "inputmode": "numeric"
         })
     )
 
+    # روش پرداخت
     payment_method = forms.ChoiceField(
         label="پرداخت",
         choices=PaymentMethod.choices,   # 🔹 به جای هاردکد
@@ -151,7 +154,8 @@ class TransactionForm(forms.Form):
         widget=forms.Textarea(attrs={
             "class": "form-control",
             "rows": 2,
-            "style": "width:215px; height:50px;",
+            "class": "field-lg",
+            "style": "height:50px;",
         })
     )
 
@@ -232,21 +236,20 @@ class TransactionForm(forms.Form):
         return cleaned
 
 class TransactionFilterForm(forms.Form):
-    op_type = forms.ChoiceField(
-        choices=OpType.choices, required=False,
-        widget=forms.Select(attrs={"class": "select", "size": 6}),
-        label="نوع عملیات")
-    item  = forms.ModelChoiceField(queryset=Item.objects.none(),  required=False, label='کالا')
-    party = forms.ModelChoiceField(queryset=Party.objects.none(), required=False, label='طرف حساب')
-    date_shamsi = forms.CharField(
-        required=False,
-        widget=forms.TextInput(attrs={
-            "id": "id_date_shamsi",
-            "placeholder":"مثلاً ۱۴۰۴/۰۵/۲۰",
-            "inputmode":"numeric",
-            "autocomplete":"off",
-        })
-    )
+    # تاریخ - روز/ماه/سال
+    day_input   = forms.CharField(required=False, widget=forms.TextInput(attrs={'data-maxint': '2', 'inputmode': 'numeric'}))
+    month_input = forms.CharField(required=False, widget=forms.TextInput(attrs={'data-maxint': '2', 'inputmode': 'numeric'}))
+    year_input  = forms.CharField(required=False, widget=forms.TextInput(attrs={'data-maxint': '4', 'inputmode': 'numeric'}))
+
+    op_type = forms.ChoiceField(choices=OpType.choices, required=False, widget=forms.Select(attrs={"class": "select", "size": 6}))
+    item    = forms.ModelChoiceField(queryset=Item.objects.none(), required=False)
+    party   = forms.ModelChoiceField(queryset=Party.objects.none(), required=False)
+
+    qty          = forms.CharField(required=False, widget=forms.TextInput(attrs={"data-maxint": "4", 'inputmode': 'numeric'}))
+    unit_price   = forms.CharField(required=False)
+    total_price  = forms.CharField(required=False)
+    cogs         = forms.CharField(required=False)
+    description  = forms.CharField(required=False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -256,95 +259,83 @@ class TransactionFilterForm(forms.Form):
         self.fields['party'].empty_label = 'همه'
         self.fields['item'].empty_label = 'همه'
 
-class ItemForm(forms.Form):
-    # نام کالا
-    name = forms.CharField(
-        label="نام کالا",
-        required=True,
-        widget=forms.TextInput(attrs={
-            "id": "name",
-            "placeholder": "نام کالا",
-            "style": "width:215px;",
-        })
-    )
-
-    # واحد اندازه گیری
-    unit = forms.CharField(
-        label="واحد",
-        required=True,
-        widget=forms.TextInput(attrs={
-            "id": "unit",
-            "placeholder": "واحد اندازه گیری",
-            "style": "width:215px;",
-        })
-    )
-
-    # قیمت فروش
+class ItemForm(forms.ModelForm):
     sell_price = forms.CharField(
         label="قیمت فروش",
         required=True,
         widget=forms.TextInput(attrs={
             "id": "sell_price",
             "placeholder": "قیمت فروش",
-            "style": "width:85px; display:inline-block;"
+            "style": "width:85px; display:inline-block;",
+            "inputmode": "numeric"
         })
     )
-
-    # گروه کالا
-    group = forms.ChoiceField(
-        choices=ItemGroup.choices,
-        label="گروه کالا",
-        widget=forms.Select(attrs={
-            "class": "select2",
-            "id": "group",
-            "required": "required",
-            "style": "width:237px;",
-        })
-    )
-
-    # آیا کالا امانی است؟
-    is_consignment = forms.BooleanField(
-        label="کالای امانی؟",
-        required=False,
-        widget=forms.CheckboxInput(attrs={
-            "id": "is_consignment",
-        })
-    )
-    # مبلغ سهم از فروش
     commission_amount = forms.CharField(
         label="سهم از فروش",
         required=False,
         widget=forms.TextInput(attrs={
             "id": "commission_amount",
             "placeholder": "مبلغ",
-            "style": "width:85px; display:inline-block;"
+            "style": "width:85px; display:inline-block;",
+            "inputmode": "numeric"
         })
     )
-    # درصد سهم از فروش
     commission_percent = forms.CharField(
         label="سهم از فروش",
         required=False,
         widget=forms.TextInput(attrs={
             "id": "commission_percent",
             "placeholder": "درصد",
-            "style": "width:50px; display:inline-block;"
+            "style": "width:50px; display:inline-block;",
+            "data-maxint": "3", "data-decimals": "2", "inputmode": "numeric"
         })
     )
+
+    class Meta:
+        model = Item
+        fields = [
+            "name",
+            "unit",
+            "sell_price",
+            "group",
+            "is_consignment",
+            "commission_amount",
+            "commission_percent",
+        ]
+
+        labels = {
+            "name": "نام کالا",
+            "unit": "واحد",
+            "group": "گروه کالا",
+            "is_consignment": "کالای امانی؟",
+        }
+        widgets = {
+            "name": forms.TextInput(attrs={
+                "placeholder": "نام کالا",
+                "style": "width:215px;",
+            }),
+            "unit": forms.TextInput(attrs={
+                "id": "unit",
+                "placeholder": "واحد اندازه گیری",
+                "style": "width:215px;",
+            }),
+            "group": forms.Select(attrs={
+                "id": "group",
+                "style": "width:237px; height:28px; padding:0 8px;",
+            }),
+            "is_consignment": forms.CheckboxInput(attrs={
+                "id": "is_consignment",
+            }),
+        }
 
     def clean_sell_price(self):
         return _normalize_number(self.cleaned_data.get("sell_price"))
 
     def clean_commission_amount(self):
-        value = self.cleaned_data.get("commission_amount")
-        if value:
-            return _normalize_number(value)
-        return None
+        return _normalize_number(self.cleaned_data.get("commission_amount"))
 
     def clean_commission_percent(self):
-        value = self.cleaned_data.get("commission_percent")
-        if value:
-            return _normalize_number(value, allow_decimal=True)
-        return None
+        return _normalize_number(self.cleaned_data.get("commission_percent"), allow_decimal=True)
 
     def clean(self):
         cleaned_data = super().clean()
@@ -360,17 +351,48 @@ class ItemForm(forms.Form):
         return cleaned_data
 
 class PartyForm(forms.ModelForm):
+    PARTY_TYPE_CHOICES = [
+        ('customer', 'مشتری'),
+        ('supplier', 'فروشنده'),
+    ]
+
+    party_type = forms.ChoiceField(
+        label='نوع طرف حساب',
+        choices=PARTY_TYPE_CHOICES,
+        widget=forms.Select(attrs={'id': 'id_party_type'})
+    )
+
     class Meta:
         model = Party
         fields = ["name", "is_customer", "is_supplier"]
         labels = {
             "name": "نام طرف حساب",
-            "is_customer": "مشتری",
-            "is_supplier": "فروشنده",
         }
 
-    def clean(self):
-        cleaned = super().clean()
-        if not cleaned.get("is_customer") and not cleaned.get("is_supplier"):
-            raise forms.ValidationError("حداقل یکی از نقش‌های مشتری یا فروشنده را انتخاب کنید.")
-        return cleaned
+    def __init__(self, *args, context_type=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        # در صورت وجود instance، انتخاب مناسب را در dropdown بگذار
+        if self.instance:
+            if self.instance.is_customer:
+                self.fields['party_type'].initial = 'customer'
+            elif self.instance.is_supplier:
+                self.fields['party_type'].initial = 'supplier'
+
+        if context_type in ["customer", "supplier"]:
+            self.fields["party_type"].initial = context_type
+            self.fields["party_type"].widget.attrs["disabled"] = True
+
+        # فیلدهای اصلی را از فرم حذف کن تا نمایش داده نشوند
+        self.fields['is_customer'].widget = forms.HiddenInput()
+        self.fields['is_supplier'].widget = forms.HiddenInput()
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        party_type = self.cleaned_data.get("party_type")
+
+        instance.is_customer = (party_type == 'customer')
+        instance.is_supplier = (party_type == 'supplier')
+
+        if commit:
+            instance.save()
+        return instance

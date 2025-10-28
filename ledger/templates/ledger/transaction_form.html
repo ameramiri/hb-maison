@@ -1,5 +1,4 @@
 {% extends 'base.html' %}
-{% load static %}
 {% load format_filters %}
 
 {% block title %}ثبت {{ OP_LABELS|get_item:op_type }}{% endblock %}
@@ -18,6 +17,9 @@
     .icon-btn:hover{ background:#eef2f7; }
     .disabled-btn{ opacity:.5; cursor:not-allowed; }
 
+    .info-label-blue{ color:#007BFF; }
+    .blink-label{ font-weight:bold; animation: blink-red-white 1.2s infinite; }
+
     @keyframes blink-red-white {
       0%, 100% { color: red; }
       50%      { color: white; }
@@ -28,7 +30,7 @@
     {% csrf_token %}
 
     <div class="form-row">
-      {{ form.date_shamsi.label_tag }}
+      {{ form.date_shamsi_display.label_tag }}
       {{ form.date_shamsi }}          <!-- فیلد اصلی تاریخ (مخفی) -->
       {{ form.date_shamsi_display }}  <!-- فیلد جدا برای تاریخ (نمایشی) -->
 
@@ -43,6 +45,12 @@
       {{ form.party.label_tag }}
       {{ form.party }}
       <button type="button" id="btn-party-modal" class="icon-btn disabled-btn" disabled title="تراکنش‌های این طرف حساب">🔎</button>
+      <button type="button" class="btn-add-party icon-btn"
+          data-url="/party/create/"
+          data-select="party" 
+          data-context="{% if op_type == OP_SELL or op_type == OP_RCV %}customer{% else %}supplier{% endif %}">
+          ➕
+      </button>
     </div>
 
     {% if op_type == OP_SELL or op_type == OP_BUY %}
@@ -50,6 +58,11 @@
         {{ form.item.label_tag }}
         {{ form.item }}
         <button type="button" id="btn-item-modal" class="icon-btn disabled-btn" disabled title="تراکنش‌های این کالا">🔎</button>
+        <button type="button" class="btn-add-item icon-btn"
+            data-url="/item/create/"
+            data-select="item">
+            ➕
+        </button>
       </div>
 
       <div class="form-row">
@@ -61,9 +74,9 @@
 
       <div class="form-row">
         {{ form.unit_price.label_tag }} {{ form.unit_price }}
-        <span style="color:#007BFF;" id="sell-price-display">—</span>
-        <span style="color:#007BFF;">تومان</span>
-        <span id="consignment-display" style="font-weight:bold; animation: blink-red-white 1.2s infinite;"></span>
+        <span class="info-label-blue" id="sell-price-display">—</span>
+        <span class="info-label-blue">تومان</span>
+        <span id="consignment-display" class="blink-label"></span>
       </div>
 
       <div class="form-row">
@@ -81,13 +94,13 @@
 
     {% if op_type == OP_RCV or op_type == OP_PAY %}
       <div class="form-row">
-        <label for="acc-balance" class="form-label">مانده حساب:</label>
-        <span style="color:#007BFF;" id="acc-balance">—</span>
-        <span style="color:#007BFF;">تومان</span>
+        <span class="form-label">مانده حساب:</span>
+        <span class="info-label-blue" id="acc-balance">—</span>
+        <span class="info-label-blue">تومان</span>
       </div>
     {% endif %}
 
-    <button type="submit" class="submit-btn">ثبت {{ OP_LABELS|get_item:op_type }}</button>
+    <button type="submit" class="submit-btn btn-lg">ثبت {{ OP_LABELS|get_item:op_type }}</button>
 
     <!-- آخرین تراکنش ها -->
     <div id="scroll-box" class="table-wrap table-scroll" style="max-height:300px; overflow-y:auto;">
@@ -144,7 +157,20 @@
 
   window.PAGE_SOURCE = "{{ page_source|default:'' }}";
 
-document.addEventListener('DOMContentLoaded', function(){
+  // آخرین تراکنش‌ها
+  function refreshRecent(){
+    const recentBody  = document.getElementById('recent-tx-body');
+     if (!recentBody) return;
+    let url = "{% url 'get_recent_transactions' %}";
+    if (typeof OP_TYPE !== 'undefined' && OP_TYPE) 
+      url += "?op_type=" + encodeURIComponent(OP_TYPE);
+    fetch(url)
+      .then(r=>r.text())
+      .then(html=>{ recentBody.innerHTML = html; })
+      .catch(err=>console.error("❌ refreshRecent error:", err));
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
   const fieldsToToggle = [
     document.getElementById('unit_price'),
     document.getElementById('total_price'),
@@ -208,11 +234,6 @@ document.addEventListener('DOMContentLoaded', function(){
     formatDateFa();
     dateShamsiDisplay.addEventListener('input', formatDateFa);
     dateShamsiDisplay.addEventListener('change', formatDateFa);
-
-    // قبل از submit مقدار انگلیسی به hidden منتقل بشه
-    dateShamsiDisplay.closest('form')?.addEventListener('submit', ()=>{
-      dateShamsiHidden.value = toEnDigits(dateShamsiDisplay.value);
-    });
   }
 
   // المان‌ها
@@ -261,11 +282,11 @@ document.addEventListener('DOMContentLoaded', function(){
     }
   }
 
-  formatOnInput(qtyInput, recalcTotal);
-  formatOnInput(unitPriceInput, recalcTotal);
+  setupNumericField('qty', 0, recalcTotal);
+  setupNumericField('unit_price', 0, recalcTotal);
 
   const paymentAmountInput = document.getElementById('payment_amount');
-  formatOnInput(paymentAmountInput);
+  setupNumericField('payment_amount', 0);
 
   // در خرید: علاوه بر بالا، تغییر قیمت کل باعث محاسبه قیمت واحد میشه
   if (OP_TYPE === OP_BUY) {
@@ -275,7 +296,7 @@ document.addEventListener('DOMContentLoaded', function(){
       unitPriceInput.value = fa(Math.round(t / q), 0); // رند بدون اعشار
     }
 
-    formatOnInput(totalPriceInput, recalcUnit);
+    setupNumericField('total_price', 0, recalcUnit);
   }
 
   // قیمت و موجودی کالا
@@ -301,7 +322,6 @@ document.addEventListener('DOMContentLoaded', function(){
         const st = Number(data?.stock);
         const un = (typeof data?.unit === 'string') ? data.unit : '';
         const is_consignment = (data?.is_consignment);
-        console.log(is_consignment);
         stockDisp.textContent     = isNaN(st) ? '—' : fa(st, 0);
         stockUnitDisp.textContent = un || '';
         sellPriceDisp.textContent = isNaN(sp) ? '—' : fa(sp, 0);
@@ -320,15 +340,6 @@ document.addEventListener('DOMContentLoaded', function(){
   }
   updateItemInfo();
 
-  // آخرین تراکنش‌ها
-  const recentBody  = document.getElementById('recent-tx-body');
-  function refreshRecent(){
-    let url = "{% url 'get_recent_transactions' %}?limit=20";
-    if (OP_TYPE) url += "&op_type=" + encodeURIComponent(OP_TYPE);
-    fetch(url)
-      .then(r=>r.text())
-      .then(html=>{ if (recentBody) recentBody.innerHTML = html; });
-  }
   refreshRecent();
 
   // دکمه کنار طرف حساب
@@ -381,6 +392,80 @@ document.addEventListener('DOMContentLoaded', function(){
 
   // در انتها: نمایش صفحه بدون چشمک
   document.getElementById('page-root')?.classList.remove('hide-until-ready');
+});
+
+
+function handleTransactionResponse(data) {
+  if (data.success && data.operations && Array.isArray(data.operations)) {
+    for (const op of data.operations) {
+      const opType = (typeof op === "string") ? op : op.type;
+      let msg = "";
+      switch (opType) {
+        case OP_SELL: msg = "فروش با موفقیت ثبت شد"; break;
+        case OP_BUY:  msg = "خرید با موفقیت ثبت شد"; break;
+        case OP_RCV:  msg = "دریافت وجه با موفقیت ثبت شد"; break;
+        case OP_PAY:  msg = "پرداخت وجه با موفقیت ثبت شد"; break;
+        case OP_USE:  msg = "مصرف شخصی/هدیه با موفقیت ثبت شد"; break;
+        default: msg = "عملیات با موفقیت انجام شد";
+      }
+      notify('success', msg);
+    }
+    const form = document.getElementById('main-form');
+    if (form) form.reset();
+    // بعد از reset فرم، تاریخ را دوباره فارسی کن
+    const dateDisplay = document.getElementById('id_date_shamsi_display');
+    if (dateDisplay && typeof toFaDigits === 'function') {
+      dateDisplay.value = toFaDigits(dateDisplay.value);
+    }
+
+    form.querySelectorAll('select').forEach(sel => {
+      sel.selectedIndex = -1;  // هیچ گزینه‌ای انتخاب نشود
+      sel.dispatchEvent(new Event('change'));
+    
+    // تنظیم دوباره نحوه پرداخت روی مقدار پیش‌فرض
+    const paymentMethodSelect = document.getElementById('payment_method');
+    paymentMethodSelect.value = paymentMethodSelect.options[0].value;
+    paymentMethodSelect.dispatchEvent(new Event('change'));
+
+  });
+    if (typeof refreshRecent === 'function') { refreshRecent(); }
+  }
+  else {
+    if (data.errors) {
+      const errs = Object.entries(data.errors).map(([k,v])=>`${k}: ${v}`).join(' | ');
+      notify('error', 'خطا در ثبت تراکنش: ' + errs);
+    } else {
+      notify('error', 'خطا در ثبت تراکنش');
+    }
+  }
+}
+
+document.getElementById('main-form').addEventListener('submit', function(e){
+  e.preventDefault();
+  const form = e.target;
+
+  const dateShamsiDisplay = document.getElementById('id_date_shamsi_display');
+  const dateShamsiHidden  = document.getElementById('id_date_shamsi');
+  if (dateShamsiDisplay && dateShamsiHidden) {
+      dateShamsiHidden.value = toEnDigits(dateShamsiDisplay.value);
+  }
+
+  const formData = new FormData(form);
+  const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+  fetch(form.action, {
+    method: 'POST',
+    body: formData,
+    headers: {'X-Requested-With': 'XMLHttpRequest'}
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data._debug) {
+      for (const log of data._debug) console.log(log);
+    }
+    handleTransactionResponse(data);
+  })
+  .catch(err => console.error("❌ Fetch error:", err));
 });
 </script>
 {% endblock %}

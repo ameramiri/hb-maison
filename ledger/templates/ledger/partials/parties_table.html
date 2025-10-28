@@ -1,0 +1,30 @@
+{% load format_filters %}
+
+<div class="table-wrap">
+<table class="table-pro">
+  <thead>
+    <tr>
+      <th>نام طرف حساب</th>
+      <th>مشتری</th>
+      <th>فروشنده</th>
+      <th>مانده حساب</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for parties in parties %}
+    <tr>
+      <td style="overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">
+        <a href="#" class="party-link" data-party-id="{{ parties.id }}" data-party-name="{{ parties.name }}">
+          {{ parties.name }}
+        </a>
+      </td>
+      <td>{% if parties.is_customer %}✅{% else %}❌{% endif %}</td>
+      <td>{% if parties.is_supplier %}✅{% else %}❌{% endif %}</td>
+      <td>{{ parties.balance|default:"0"|fa_thousand }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="8" class="text-center">هیچ طرف حسابی وجود ندارد.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>

@@ -115,6 +115,40 @@ USE_I18N = True
 USE_TZ = False
 TIME_ZONE = 'Asia/Tehran'
 
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '[{levelname}] {asctime} {name} — {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname}: {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',   # یا 'simple' برای کوتاه‌تر
+        },
+    },
+    'loggers': {
+        # تمام لاگرهای اپلیکیشن
+        'django': {
+            'handlers': ['console'],
+            'level': 'WARNING',   # فقط هشدارها از خود Django
+        },
+        # لاگر اختصاصی برای اپ تو
+        'ledger': {
+            'handlers': ['console'],
+            'level': 'DEBUG',     # همه چیز از debug تا error چاپ میشه
+            'propagate': False,
+        },
+    },
+}
+
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
