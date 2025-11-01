@@ -32,7 +32,6 @@ def _normalize_number(value, allow_decimal=False):
     except InvalidOperation:
         raise forms.ValidationError("مقدار عددی نامعتبر است.")
 
-
 class TransactionForm(forms.Form):
     # تاریخ (مخفی و نمایشی)
     date_shamsi = forms.CharField(
@@ -60,6 +59,7 @@ class TransactionForm(forms.Form):
         widget=forms.CheckboxInput(attrs={
             "id": "giftuse",
             "style": "cursor:pointer;",
+            "class": "field-sm",
         })
     )
 
@@ -137,13 +137,12 @@ class TransactionForm(forms.Form):
     # روش پرداخت
     payment_method = forms.ChoiceField(
         label="پرداخت",
-        choices=PaymentMethod.choices,   # 🔹 به جای هاردکد
+        choices=PaymentMethod.choices,
         required=False,
         widget=forms.Select(attrs={
-            "class": "select",
+            "class": "select2 field-md",
             "id": "payment_method",
             "placeholder":"انتخاب روش پرداخت",
-            "style": "width:120px;",
         })
     )
 
@@ -164,6 +163,8 @@ class TransactionForm(forms.Form):
         super().__init__(*args, **kwargs)
 
         self.fields['date_shamsi_display'].initial = jdatetime.date.today().strftime('%Y/%m/%d')
+
+        self.fields["payment_method"].initial = PaymentMethod.POS2
 
         qs_party = Party.objects.all().order_by("name")
         qs_item = Item.objects.all().order_by("name")

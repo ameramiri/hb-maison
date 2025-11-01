@@ -13,10 +13,6 @@
   {% endif %}
 
   <style>
-    .icon-btn{ border:1px solid #d0d5dd; background:#f9fafb; border-radius:8px; padding:6px 8px; cursor:pointer; }
-    .icon-btn:hover{ background:#eef2f7; }
-    .disabled-btn{ opacity:.5; cursor:not-allowed; }
-
     .info-label-blue{ color:#007BFF; }
     .blink-label{ font-weight:bold; animation: blink-red-white 1.2s infinite; }
 
@@ -41,7 +37,7 @@
       {% endif %}
     </div>
 
-    <div class="form-row">
+    <div class="form-row inline-group">
       {{ form.party.label_tag }}
       {{ form.party }}
       <button type="button" id="btn-party-modal" class="icon-btn disabled-btn" disabled title="تراکنش‌های این طرف حساب">🔎</button>
@@ -54,7 +50,7 @@
     </div>
 
     {% if op_type == OP_SELL or op_type == OP_BUY %}
-      <div class="form-row">
+      <div class="form-row inline-group">
         {{ form.item.label_tag }}
         {{ form.item }}
         <button type="button" id="btn-item-modal" class="icon-btn disabled-btn" disabled title="تراکنش‌های این کالا">🔎</button>
@@ -84,11 +80,11 @@
       </div>
     {% endif %}
 
-    <div class="form-row">
+    <div class="form-row inline-group">
       {{ form.payment_amount.label_tag }} {{ form.payment_amount }}   {{ form.payment_method }}
     </div>
 
-    <div class="form-row">
+    <div class="form-row inline-group">
       {{ form.description.label_tag }} {{ form.description }}
     </div>
 
@@ -393,7 +389,6 @@
   // در انتها: نمایش صفحه بدون چشمک
   document.getElementById('page-root')?.classList.remove('hide-until-ready');
 });
-
 
 function handleTransactionResponse(data) {
   if (data.success && data.operations && Array.isArray(data.operations)) {
