@@ -10,7 +10,7 @@ git status
 echo ====================
 
 REM دریافت پیام کامیت از کاربر
-set /p msg=Enter commit message (پیام کامیت را بنویسید): 
+set /p msg=Enter commit message: 
 
 REM اگر خالی بود، پیام پیش‌فرض بگذار
 if "%msg%"=="" set msg=update
