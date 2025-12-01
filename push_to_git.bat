@@ -9,11 +9,9 @@ echo ==== GIT STATUS (before) ====
 git status -sb
 echo ==============================
 
-REM گرفتن پیام کامیت از کاربر
 set msg=
 set /p msg=Enter commit message: 
 
-REM اگر خالی بود، پیام خودکار با تاریخ/ساعت بساز
 if "%msg%"=="" (
     for /f "tokens=1-4 delims=/ " %%a in ("%date% %time%") do (
         set msg=auto-commit %%a %%b %%c %%d
@@ -36,10 +34,10 @@ if %errorlevel% NEQ 0 (
     git push origin main
 
     echo.
-    echo ✅ Done: changes pushed.
+    echo Done: changes pushed.
 ) else (
     echo.
-    echo ℹ️ No changes to commit. Nothing to push.
+    echo No changes to commit. Nothing to push.
 )
 
 echo.
