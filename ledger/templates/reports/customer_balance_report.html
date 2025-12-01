@@ -7,24 +7,27 @@
 {% block content %}
 <h2>گزارش مانده حساب مشتریان</h2>
 
-<form method="get" class="filter-form"
-      style="margin:1rem 0; display:flex; flex-wrap:wrap; gap:.75rem; align-items:center;">
-  <input type="text" name="q" value="{{ q }}"
-         placeholder="جستجو در نام مشتری…"
-         style="padding:.4rem .6rem; width:200px;"
-         onkeydown="if(event.key==='Enter'){ this.form.submit(); }">
+<form method="get" class="filter-form" style="margin:1rem 0; display:flex; flex-wrap:wrap; ">
 
-  <div style="display:flex; align-items:center; flex-basis:100%; margin-top:.25rem; gap:2rem;">
+  <div class="form-row">
+  <input type="text" name="q" value="{{ q }}"
+    placeholder="جستجو در نام مشتری…"
+    style="padding:.4rem .6rem; width:200px;"
+    onkeydown="if(event.key==='Enter'){ this.form.submit(); }">
+  </div>
+  
+  <div style="display:flex; flex-basis:100%; margin-top:0.25rem; gap:2rem;">
     <label style="display:inline-flex; align-items:center; gap:.35rem; cursor:pointer;">
       <input id="exclude_zero" type="checkbox" name="exclude_zero"
-             {% if exclude_zero %}checked{% endif %}
-             style="margin:0; width:16px; height:16px; cursor:pointer;">
+        {% if exclude_zero %}checked{% endif %}
+        style="margin:0; width:16px; height:16px; cursor:pointer;">
       حذف مشتریان با مانده صفر
     </label>
 
-    <div class="totals-bar-single" style="padding:.2rem .75rem; background:#f8fafc; border-radius:6px; font-weight:bold;">
+    <div class="totals-bar-single" style="padding:.2rem .75rem; background:#8ec6fb; border-radius:6px; font-weight:bold;">
       <span class="label">جمع مانده:</span>
       <span class="value" dir="ltr">{{ totals.sum_balance|fa_thousand }}</span>
+      تومان
     </div>
   </div>
 

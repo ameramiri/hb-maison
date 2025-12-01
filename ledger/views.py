@@ -494,9 +494,6 @@ def normalize_jdate_str(s:str)->str:
 
 @login_required
 def transaction_list(request):
-    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        return render(request, 'ledger/partials/tx_rows.html', {'transactions': qs})
-
     from .forms import TransactionFilterForm
     params = request.GET.copy()
     form = TransactionFilterForm(params or None)

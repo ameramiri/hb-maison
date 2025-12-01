@@ -16,15 +16,15 @@
 
 <form method="get" class="filter-form"
       style="display:flex; flex-wrap:wrap; gap:0.25rem; align-items:center;">
-  <div style="display:flex; flex-direction:row; align-items:center; gap:.5rem; margin-bottom:0;">
+  <div class="form-row">
     <input type="text" name="q" value="{{ q }}"
       placeholder="جستجو در نام طرف حساب…"
       style="padding:.4rem .6rem; width:200px;"
       onkeydown="if(event.key==='Enter'){ this.form.submit(); }">
-  <button type="button" class="btn-add-party icon-btn"
-          data-url="/party/create/"
-          data-table="party-table-wrap" 
-          data-success="طرف حساب با موفقیت اضافه شد">➕</button>
+    <button type="button" class="btn-add-party icon-btn"
+      data-url="/party/create/"
+      data-table="party-table-wrap" 
+      data-success="طرف حساب با موفقیت اضافه شد">➕</button>
   </div>
 
   <div style="flex-basis:100%;"></div>

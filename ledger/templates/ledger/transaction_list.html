@@ -12,10 +12,19 @@
   .filters-row select {
     font-size: 13px;
     width: 100%;
-    height: 24px;
-    box-sizing: border-box;
+    height: 28px;
+    border: 1px solid #d0d5dd;
+    border-radius: 6px;
     padding: 2px 4px;
   }
+
+  .filters-row input:focus,
+  .filters-row select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
 
   .date-filter-fields {
     display: inline-flex;
@@ -29,8 +38,8 @@
   }
 
   .date-filter-fields:focus-within {
-    border-color: #000000;
-    border-width: 2px;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
     padding: 0 3px;
   }
 
@@ -117,24 +126,23 @@
 <script>
 
 document.addEventListener('DOMContentLoaded', function(){
+  const form = document.querySelector('#filters-in-header');
+
   // --- Select2 ---
-  if (window.jQuery) {
+  if (window.jQuery && form) {
+    // فوکوس روی باکس سرچ هنگام باز شدن Select2
     $(document).on('select2:open', () => {
-      // پیدا کردن آخرین باکس سرچ Select2 و فوکوس دادن بهش
       let searchBox = document.querySelector('.select2-container--open .select2-search__field');
       if (searchBox) {
         searchBox.focus();
       }
     });
 
-    $('#id_op_type').select2({ width:'100px', dir:'rtl', minimumResultsForSearch: Infinity }).on('select2:select select2:clear', () => form.requestSubmit());    
-    $('#id_item'   ).select2({ width:'172px', dir:'rtl' }).on('select2:select select2:clear', () => form.requestSubmit());
-    $('#id_party'  ).select2({ width:'172px', dir:'rtl' }).on('select2:select select2:clear', () => form.requestSubmit());
+    $('#op_type').select2({ width:'100px', dir:'rtl' }).on('select2:select select2:clear', () => form.requestSubmit());    
+    $('#item'   ).select2({ width:'172px', dir:'rtl' }).on('select2:select select2:clear', () => form.requestSubmit());
+    $('#party'  ).select2({ width:'172px', dir:'rtl' }).on('select2:select select2:clear', () => form.requestSubmit());
   }
-
-  // --- فرم فیلتر ---
-  const form = document.querySelector('#filters-in-header');
-  if (form) {
+    // --- فرم فیلتر ---
     const autoSubmit = (() => {
       let t = null;
       return (delay = 120) => { clearTimeout(t); t = setTimeout(() => form.requestSubmit(), delay); };
@@ -145,10 +153,8 @@ document.addEventListener('DOMContentLoaded', function(){
       const el = document.getElementById(id);
       if (!el) return;
 
-      // برای selectها → select2 event
-      if (window.jQuery && jQuery(el).data('select2')) {
-        jQuery(el).on('select2:select select2:clear', () => autoSubmit(0));
-      }
+      el.addEventListener('input', () => autoSubmit());
+      el.addEventListener('keydown', e => { if(e.key === 'Enter') { e.preventDefault(); autoSubmit(0); }});
     });
 
     const dateInput = document.getElementById('id_date_shamsi');
@@ -185,7 +191,7 @@ document.addEventListener('DOMContentLoaded', function(){
       }
       localStorage.removeItem('lastFocusedField');
     }
-  }
+  
 
   const dayInput   = setupNumericField('id_day_input', 0);
   const monthInput = setupNumericField('id_month_input', 0);

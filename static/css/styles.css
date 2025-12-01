@@ -154,10 +154,6 @@ form {
   font-weight: 500;
   text-align: right;
   margin: 0;
-}
-
-/* جلوگیری از شکستن متن لیبل giftuse */
-label[for^="giftuse"] {
   white-space: nowrap;
 }
 
@@ -232,11 +228,12 @@ label[for^="giftuse"] {
   color: #fff;
   border-radius: 10px;
   font-size: 1rem;
-  padding: 10px 200px;
   cursor: pointer;
   margin-top: 10px;
+  padding: 9px 26px;
   transition: background 0.2s ease;
 }
+.btn-lg, .submit-btn.btn-lg { min-width: 265px; }
 
 .submit-btn:hover {
   background: #0056b3;
@@ -245,12 +242,6 @@ label[for^="giftuse"] {
 .icon-btn:hover,
 .submit-btn:hover {
   border-color: #007bff !important;
-}
-.btn-lg, .submit-btn.btn-lg {
-  font-size: 1rem;
-  padding: 9px 26px;
-  margin-right: 74px;
-  min-width: 265px;
 }
 
 .icon-btn {
@@ -317,7 +308,7 @@ p.success {
 }
 
 .modal-content {
-  background-color: var(--modal-bg, #fff);
+  background-color: var(--modal-bg, #ffffff);
   color: var(--modal-fg, #222);
   border-radius: 10px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
@@ -329,7 +320,7 @@ p.success {
 }
 
 .modal-content label {
-  flex: 0 0 95px;
+  flex: 0 0 80px;
 }
 
 @keyframes modalScale {
@@ -375,9 +366,10 @@ p.success {
   overflow-y: auto;
 }
 
-.modal-content.modal-sm { max-width: 450px }
-.modal-content.modal-md { max-width: 600px }
-.modal-content.modal-lg { max-width: 900px }
+.modal-content.modal-sm { min-width: 0; width: 450px; max-width: 95vw }
+.modal-content.modal-md { min-width: 600px }
+.modal-content.modal-lg { min-width: 900px }
+
 
 .modal-body::-webkit-scrollbar { width: 6px; }
 .modal-body::-webkit-scrollbar-thumb {

@@ -93,7 +93,7 @@ class TransactionForm(forms.Form):
             "id": "qty",
             "placeholder": "تعداد",
             "class": "field-sm",
-            "data-maxint": "4", "inputmode": "numeric"
+            "data-maxint": "3", "inputmode": "numeric"
         })
     )
 
@@ -242,11 +242,11 @@ class TransactionFilterForm(forms.Form):
     month_input = forms.CharField(required=False, widget=forms.TextInput(attrs={'data-maxint': '2', 'inputmode': 'numeric'}))
     year_input  = forms.CharField(required=False, widget=forms.TextInput(attrs={'data-maxint': '4', 'inputmode': 'numeric'}))
 
-    op_type = forms.ChoiceField(choices=OpType.choices, required=False, widget=forms.Select(attrs={"class": "select", "size": 6}))
-    item    = forms.ModelChoiceField(queryset=Item.objects.none(), required=False)
-    party   = forms.ModelChoiceField(queryset=Party.objects.none(), required=False)
+    op_type = forms.ChoiceField(choices=OpType.choices, required=False, widget=forms.Select(attrs={"class": "select"}))
+    item    = forms.ModelChoiceField(queryset=Item.objects.none(), required=False, widget=forms.Select(attrs={"class": "select2"}))
+    party   = forms.ModelChoiceField(queryset=Party.objects.none(), required=False, widget=forms.Select(attrs={"class": "select2"}))
 
-    qty          = forms.CharField(required=False, widget=forms.TextInput(attrs={"data-maxint": "4", 'inputmode': 'numeric'}))
+    qty          = forms.CharField(required=False, widget=forms.TextInput(attrs={"data-maxint": "3", 'inputmode': 'numeric'}))
     unit_price   = forms.CharField(required=False)
     total_price  = forms.CharField(required=False)
     cogs         = forms.CharField(required=False)
@@ -256,9 +256,11 @@ class TransactionFilterForm(forms.Form):
         super().__init__(*args, **kwargs)
 
         self.fields['item'].queryset  = Item.objects.all().order_by('name')
+        self.fields['item'].empty_label = 'همه'
+
         self.fields['party'].queryset = Party.objects.all().order_by('name')
         self.fields['party'].empty_label = 'همه'
-        self.fields['item'].empty_label = 'همه'
+
 
 class ItemForm(forms.ModelForm):
     sell_price = forms.CharField(
@@ -267,7 +269,7 @@ class ItemForm(forms.ModelForm):
         widget=forms.TextInput(attrs={
             "id": "sell_price",
             "placeholder": "قیمت فروش",
-            "style": "width:85px; display:inline-block;",
+            "class": "field-sm",
             "inputmode": "numeric"
         })
     )
@@ -277,7 +279,7 @@ class ItemForm(forms.ModelForm):
         widget=forms.TextInput(attrs={
             "id": "commission_amount",
             "placeholder": "مبلغ",
-            "style": "width:85px; display:inline-block;",
+            "class": "field-sm",
             "inputmode": "numeric"
         })
     )
@@ -287,7 +289,7 @@ class ItemForm(forms.ModelForm):
         widget=forms.TextInput(attrs={
             "id": "commission_percent",
             "placeholder": "درصد",
-            "style": "width:50px; display:inline-block;",
+            "class": "field-sm",
             "data-maxint": "3", "data-decimals": "2", "inputmode": "numeric"
         })
     )
@@ -313,16 +315,16 @@ class ItemForm(forms.ModelForm):
         widgets = {
             "name": forms.TextInput(attrs={
                 "placeholder": "نام کالا",
-                "style": "width:215px;",
+                "class": "field-lg",
             }),
             "unit": forms.TextInput(attrs={
                 "id": "unit",
                 "placeholder": "واحد اندازه گیری",
-                "style": "width:215px;",
+                "class": "field-lg",
             }),
             "group": forms.Select(attrs={
                 "id": "group",
-                "style": "width:237px; height:28px; padding:0 8px;",
+                "class": "field-lg",
             }),
             "is_consignment": forms.CheckboxInput(attrs={
                 "id": "is_consignment",

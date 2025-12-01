@@ -167,228 +167,236 @@
   }
 
   document.addEventListener('DOMContentLoaded', function(){
-  const fieldsToToggle = [
-    document.getElementById('unit_price'),
-    document.getElementById('total_price'),
-    document.getElementById('payment_amount'),
-    document.getElementById('payment_method')
-  ];
+    const fieldsToToggle = [
+      document.getElementById('unit_price'),
+      document.getElementById('total_price'),
+      document.getElementById('payment_amount'),
+      document.getElementById('payment_method')
+    ];
 
-  const integerFields = [
-    document.getElementById('qty'),
-    document.getElementById('unit_price'),
-    document.getElementById('total_price'),
-    document.getElementById('payment_amount')
-  ];
+    const integerFields = [
+      document.getElementById('qty'),
+      document.getElementById('unit_price'),
+      document.getElementById('total_price'),
+      document.getElementById('payment_amount')
+    ];
 
-  const qty        = setupNumericField('qty', 0, recalcTotal);
-  const unitPrice  = setupNumericField('unit_price', 0, recalcTotal);
-  const totalPrice = setupNumericField('total_price', 0);
-  const payment    = setupNumericField('payment_amount', 0);
+    const qty        = setupNumericField('qty', 0, recalcTotal);
+    const unitPrice  = setupNumericField('unit_price', 0, recalcTotal);
+    const totalPrice = setupNumericField('total_price', 0);
+    const payment    = setupNumericField('payment_amount', 0);
 
-  // Select2 — قبل از نمایش
-  if (window.jQuery) {
-    $('#party').select2({
-        dir:'rtl', placeholder:'انتخاب طرف حساب',
-        sorter: function(data) {
-          return data.sort(function(a, b) {
-            return a.text.localeCompare(b.text, 'fa', { sensitivity: 'base' });
-          });
-        }
-    });
-    $('#item').select2({
-        dir:'rtl', placeholder:'انتخاب کالا',
-        sorter: function(data) {
-          return data.sort(function(a, b) {
-            return a.text.localeCompare(b.text, 'fa', { sensitivity: 'base' });
-          });
-        }
-    });
-    $('#payment_method').select2({
-        dir:'rtl',
-        minimumResultsForSearch: Infinity,
-        sorter: function(data) {
-          return data.sort(function(a, b) {
-            return a.text.localeCompare(b.text, 'fa', { sensitivity: 'base' });
-          });
-        }
-    });
-
-    // وقتی دراپ‌داون باز شد → فوکوس روی سرچ
-    $(document).on('select2:open', () => {
-      document.querySelector('.select2-container--open .select2-search__field')?.focus();
-    });
-  }
-
-  // تاریخ
-  const dateShamsiDisplay = document.getElementById('id_date_shamsi_display');
-  const dateShamsiHidden  = document.getElementById('id_date_shamsi');
-
-  if (dateShamsiDisplay && dateShamsiHidden){
-    // همیشه ورودی کاربر رو فارسی نگه‌دار
-    const formatDateFa = ()=>{ dateShamsiDisplay.value = toFaDigits(dateShamsiDisplay.value); };
-    formatDateFa();
-    dateShamsiDisplay.addEventListener('input', formatDateFa);
-    dateShamsiDisplay.addEventListener('change', formatDateFa);
-  }
-
-  // المان‌ها
-  const itemSelect      = document.getElementById('item');
-  const partySelect     = document.getElementById('party');
-  const btnItemModal    = document.getElementById('btn-item-modal');
-  const btnPartyModal   = document.getElementById('btn-party-modal');
-
-  const qtyInput        = document.getElementById('qty');
-  const unitPriceInput  = document.getElementById('unit_price');
-  const totalPriceInput = document.getElementById('total_price');
-
-  const sellPriceDisp   = document.getElementById('sell-price-display');
-  const stockDisp       = document.getElementById('stock-display');
-  const stockUnitDisp   = document.getElementById('stock-unit');
-  const consignmentDisp = document.getElementById('consignment-display');
-
-  // فعال/غیرفعال کردن دکمه‌ها
-  function toggleBtn(selectEl, btn){
-    if (!btn) return;
-    const hasVal = !!(selectEl && selectEl.value);
-    btn.disabled = !hasVal;
-    btn.classList.toggle('disabled-btn', !hasVal);
-  }
-  partySelect?.addEventListener('change', ()=>toggleBtn(partySelect, btnPartyModal));
-  itemSelect?.addEventListener('change',  ()=>toggleBtn(itemSelect,  btnItemModal));
-
-  if (window.jQuery && $('#party').data('select2')) {
-    $('#party').on('select2:select select2:clear', ()=>toggleBtn(partySelect, btnPartyModal));
-  }
-  if (window.jQuery && $('#item').data('select2')) {
-    $('#item').on('select2:select select2:clear', ()=>toggleBtn(itemSelect, btnItemModal));
-  }
-
-  // وضعیت اولیه
-  toggleBtn(partySelect, btnPartyModal);
-  toggleBtn(itemSelect,  btnItemModal);
-
-  // محاسبه قیمت کل بر اساس تعداد و قیمت واحد
-  function recalcTotal(){
-    const q = num(qtyInput), u = num(unitPriceInput);
-    if (!isNaN(q) && !isNaN(u)) {
-      totalPriceInput.value = fa(q * u, 0);
-    } else {
-      totalPriceInput.value = '';
-    }
-  }
-
-  setupNumericField('qty', 0, recalcTotal);
-  setupNumericField('unit_price', 0, recalcTotal);
-
-  const paymentAmountInput = document.getElementById('payment_amount');
-  setupNumericField('payment_amount', 0);
-
-  // در خرید: علاوه بر بالا، تغییر قیمت کل باعث محاسبه قیمت واحد میشه
-  if (OP_TYPE === OP_BUY) {
-    function recalcUnit(){
-      const q = num(qtyInput), t = num(totalPriceInput);
-      if (isNaN(q) || q <= 0 || isNaN(t)) return;
-      unitPriceInput.value = fa(Math.round(t / q), 0); // رند بدون اعشار
-    }
-
-    setupNumericField('total_price', 0, recalcUnit);
-  }
-
-  // قیمت و موجودی کالا
-  const endpoint = "{% url 'get_sell_price' %}";
-  function updateItemInfo(){
-    if (!itemSelect || !sellPriceDisp || !stockDisp || !stockUnitDisp) {
-      return; // اگر این صفحه receipt/pay هست، اینا وجود ندارن → پس هیچی انجام نده
-    }
-
-    const itemId = itemSelect?.value || '';
-    if (!itemId){
-      sellPriceDisp.textContent = '—';
-      stockDisp.textContent     = '—';
-      stockUnitDisp.textContent = '';
-      consignmentDisp.textContent = '';
-      return;
-    }
-
-    fetch(`${endpoint}?item_id=${encodeURIComponent(itemId)}`, { credentials:'same-origin' })
-      .then(r=>{ if(!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-      .then(data=>{
-        const sp = Number(data?.sell_price);
-        const st = Number(data?.stock);
-        const un = (typeof data?.unit === 'string') ? data.unit : '';
-        const is_consignment = (data?.is_consignment);
-        stockDisp.textContent     = isNaN(st) ? '—' : fa(st, 0);
-        stockUnitDisp.textContent = un || '';
-        sellPriceDisp.textContent = isNaN(sp) ? '—' : fa(sp, 0);
-        consignmentDisp.textContent = is_consignment? 'امانی' : '';
-      })
-      .catch(()=>{
-        sellPriceDisp.textContent='—';
-        stockDisp.textContent='—';
-        stockUnitDisp.textContent='';
-        consignmentDisp.textContent='';
-      });
-  }
-  itemSelect?.addEventListener('change', updateItemInfo);
-  if (window.jQuery && $('#item').data('select2')){
-    $('#item').on('select2:select', updateItemInfo);
-  }
-  updateItemInfo();
-
-  refreshRecent();
-
-  // دکمه کنار طرف حساب
-  btnPartyModal?.addEventListener('click', ()=>{
-    const pid   = partySelect.value;
-    const pname = partySelect.options[partySelect.selectedIndex]?.text || '';
-    if (pid) {
-      window.openPartyModalById?.(pid, pname);
-    }
-  });
-
-  // دکمه کنار کالا
-  btnItemModal?.addEventListener('click', ()=>{
-    const iid   = itemSelect.value;
-    const iname = itemSelect.options[itemSelect.selectedIndex]?.text || '';
-    if (iid) {
-      window.openItemModalById?.(iid, iname);
-    }
-  });
-
-  if (OP_TYPE === OP_SELL) {
-    const giftuseCheckbox = document.getElementById('giftuse');
-
-    // فعال/غیرفعال کردن فیلدها با زدن روی چک باکس
-    function toggleFields(){
-      if (!giftuseCheckbox) return;
-
-      const disable = giftuseCheckbox.checked;
-      fieldsToToggle.forEach(f => {
-        if (!f) return;
-
-        if (disable) {
-          // مقدار فعلی رو نگه داریم
-          f.dataset.savedValue = f.value;  // یک بار ذخیره
-
-          f.value = '';        // نمایش خالی
-          f.disabled = true;   // غیر فعال
-        } else {
-          // بازگردوندن مقدار قبلی
-          if (f.dataset.savedValue !== undefined) {
-            f.value = f.dataset.savedValue;
+    // Select2 — قبل از نمایش
+    if (window.jQuery) {
+      $('#party').select2({
+          dir:'rtl', placeholder:'انتخاب طرف حساب',
+          sorter: function(data) {
+            return data.sort(function(a, b) {
+              return a.text.localeCompare(b.text, 'fa', { sensitivity: 'base' });
+            });
           }
-          f.disabled = false;  // فعال
-        }
+      });
+      $('#item').select2({
+          dir:'rtl', placeholder:'انتخاب کالا',
+          sorter: function(data) {
+            return data.sort(function(a, b) {
+              return a.text.localeCompare(b.text, 'fa', { sensitivity: 'base' });
+            });
+          }
+      });
+      $('#payment_method').select2({
+          dir:'rtl',
+          minimumResultsForSearch: Infinity,
+          sorter: function(data) {
+            return data.sort(function(a, b) {
+              return a.text.localeCompare(b.text, 'fa', { sensitivity: 'base' });
+            });
+          }
+      });
+
+      // وقتی دراپ‌داون باز شد → فوکوس روی سرچ
+      $(document).on('select2:open', () => {
+        document.querySelector('.select2-container--open .select2-search__field')?.focus();
+      });
+
+      $('#date_shamsi').persianDatepicker({
+        format: 'YYYY/MM/DD',
+        initialValueType: 'gregorian',
+        calendar: { persian: { locale: 'fa' } },
+        autoClose: true,
+        toolbox: { calendarSwitch: { enabled: false } }
       });
     }
-    giftuseCheckbox.addEventListener('change', toggleFields);
-    toggleFields();
-  }
 
-  // در انتها: نمایش صفحه بدون چشمک
-  document.getElementById('page-root')?.classList.remove('hide-until-ready');
-});
+    // تاریخ
+    const dateShamsiDisplay = document.getElementById('id_date_shamsi_display');
+    const dateShamsiHidden  = document.getElementById('id_date_shamsi');
+
+    if (dateShamsiDisplay && dateShamsiHidden){
+      // همیشه ورودی کاربر رو فارسی نگه‌دار
+      const formatDateFa = ()=>{ dateShamsiDisplay.value = toFaDigits(dateShamsiDisplay.value); };
+      formatDateFa();
+      dateShamsiDisplay.addEventListener('input', formatDateFa);
+      dateShamsiDisplay.addEventListener('change', formatDateFa);
+    }
+
+    // المان‌ها
+    const itemSelect      = document.getElementById('item');
+    const partySelect     = document.getElementById('party');
+    const btnItemModal    = document.getElementById('btn-item-modal');
+    const btnPartyModal   = document.getElementById('btn-party-modal');
+
+    const qtyInput        = document.getElementById('qty');
+    const unitPriceInput  = document.getElementById('unit_price');
+    const totalPriceInput = document.getElementById('total_price');
+
+    const sellPriceDisp   = document.getElementById('sell-price-display');
+    const stockDisp       = document.getElementById('stock-display');
+    const stockUnitDisp   = document.getElementById('stock-unit');
+    const consignmentDisp = document.getElementById('consignment-display');
+
+    // فعال/غیرفعال کردن دکمه‌ها
+    function toggleBtn(selectEl, btn){
+      if (!btn) return;
+      const hasVal = !!(selectEl && selectEl.value);
+      btn.disabled = !hasVal;
+      btn.classList.toggle('disabled-btn', !hasVal);
+    }
+    partySelect?.addEventListener('change', ()=>toggleBtn(partySelect, btnPartyModal));
+    itemSelect?.addEventListener('change',  ()=>toggleBtn(itemSelect,  btnItemModal));
+
+    if (window.jQuery && $('#party').data('select2')) {
+      $('#party').on('select2:select select2:clear', ()=>toggleBtn(partySelect, btnPartyModal));
+    }
+    if (window.jQuery && $('#item').data('select2')) {
+      $('#item').on('select2:select select2:clear', ()=>toggleBtn(itemSelect, btnItemModal));
+    }
+
+    // وضعیت اولیه
+    toggleBtn(partySelect, btnPartyModal);
+    toggleBtn(itemSelect,  btnItemModal);
+
+    // محاسبه قیمت کل بر اساس تعداد و قیمت واحد
+    function recalcTotal(){
+      const q = num(qtyInput), u = num(unitPriceInput);
+      if (!isNaN(q) && !isNaN(u)) {
+        totalPriceInput.value = fa(q * u, 0);
+      } else {
+        totalPriceInput.value = '';
+      }
+    }
+
+    setupNumericField('qty', 0, recalcTotal);
+    setupNumericField('unit_price', 0, recalcTotal);
+
+    const paymentAmountInput = document.getElementById('payment_amount');
+    setupNumericField('payment_amount', 0);
+
+    // در خرید: علاوه بر بالا، تغییر قیمت کل باعث محاسبه قیمت واحد میشه
+    if (OP_TYPE === OP_BUY) {
+      function recalcUnit(){
+        const q = num(qtyInput), t = num(totalPriceInput);
+        if (isNaN(q) || q <= 0 || isNaN(t)) return;
+        unitPriceInput.value = fa(Math.round(t / q), 0); // رند بدون اعشار
+      }
+
+      setupNumericField('total_price', 0, recalcUnit);
+    }
+
+    // قیمت و موجودی کالا
+    const endpoint = "{% url 'get_sell_price' %}";
+    function updateItemInfo(){
+      if (!itemSelect || !sellPriceDisp || !stockDisp || !stockUnitDisp) {
+        return; // اگر این صفحه receipt/pay هست، اینا وجود ندارن → پس هیچی انجام نده
+      }
+
+      const itemId = itemSelect?.value || '';
+      if (!itemId){
+        sellPriceDisp.textContent = '—';
+        stockDisp.textContent     = '—';
+        stockUnitDisp.textContent = '';
+        consignmentDisp.textContent = '';
+        return;
+      }
+
+      fetch(`${endpoint}?item_id=${encodeURIComponent(itemId)}`, { credentials:'same-origin' })
+        .then(r=>{ if(!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+        .then(data=>{
+          const sp = Number(data?.sell_price);
+          const st = Number(data?.stock);
+          const un = (typeof data?.unit === 'string') ? data.unit : '';
+          const is_consignment = (data?.is_consignment);
+          stockDisp.textContent     = isNaN(st) ? '—' : fa(st, 0);
+          stockUnitDisp.textContent = un || '';
+          sellPriceDisp.textContent = isNaN(sp) ? '—' : fa(sp, 0);
+          consignmentDisp.textContent = is_consignment? 'امانی' : '';
+        })
+        .catch(()=>{
+          sellPriceDisp.textContent='—';
+          stockDisp.textContent='—';
+          stockUnitDisp.textContent='';
+          consignmentDisp.textContent='';
+        });
+    }
+    itemSelect?.addEventListener('change', updateItemInfo);
+    if (window.jQuery && $('#item').data('select2')){
+      $('#item').on('select2:select', updateItemInfo);
+    }
+    updateItemInfo();
+
+    refreshRecent();
+
+    // دکمه کنار طرف حساب
+    btnPartyModal?.addEventListener('click', ()=>{
+      const pid   = partySelect.value;
+      const pname = partySelect.options[partySelect.selectedIndex]?.text || '';
+      if (pid) {
+        window.openPartyModalById?.(pid, pname);
+      }
+    });
+
+    // دکمه کنار کالا
+    btnItemModal?.addEventListener('click', ()=>{
+      const iid   = itemSelect.value;
+      const iname = itemSelect.options[itemSelect.selectedIndex]?.text || '';
+      if (iid) {
+        window.openItemModalById?.(iid, iname);
+      }
+    });
+
+    if (OP_TYPE === OP_SELL) {
+      const giftuseCheckbox = document.getElementById('giftuse');
+
+      // فعال/غیرفعال کردن فیلدها با زدن روی چک باکس
+      function toggleFields(){
+        if (!giftuseCheckbox) return;
+
+        const disable = giftuseCheckbox.checked;
+        fieldsToToggle.forEach(f => {
+          if (!f) return;
+
+          if (disable) {
+            // مقدار فعلی رو نگه داریم
+            f.dataset.savedValue = f.value;  // یک بار ذخیره
+
+            f.value = '';        // نمایش خالی
+            f.disabled = true;   // غیر فعال
+          } else {
+            // بازگردوندن مقدار قبلی
+            if (f.dataset.savedValue !== undefined) {
+              f.value = f.dataset.savedValue;
+            }
+            f.disabled = false;  // فعال
+          }
+        });
+      }
+      giftuseCheckbox.addEventListener('change', toggleFields);
+      toggleFields();
+    }
+
+    // در انتها: نمایش صفحه بدون چشمک
+    document.getElementById('page-root')?.classList.remove('hide-until-ready');
+  });
 
 function handleTransactionResponse(data) {
   if (data.success && data.operations && Array.isArray(data.operations)) {
